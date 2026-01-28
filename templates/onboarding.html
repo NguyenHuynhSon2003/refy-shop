@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalize Your Style | ReFYShoe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: #fff; color: #111; padding-bottom: 50px; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        
+        /* Header */
+        .header { text-align: center; margin-bottom: 50px; }
+        .header h1 { font-size: 36px; font-weight: 900; margin-bottom: 10px; }
+        .header p { color: #666; font-size: 16px; }
+
+        /* Section */
+        .section-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* 1. Gender Selection (Simple Buttons) */
+        .gender-options { display: flex; gap: 20px; margin-bottom: 50px; }
+        .gender-label { 
+            flex: 1; text-align: center; padding: 20px; border: 2px solid #eee; border-radius: 12px; 
+            cursor: pointer; transition: 0.2s; font-weight: 600;
+        }
+        .gender-input { display: none; }
+        .gender-input:checked + .gender-label { border-color: black; background: black; color: white; }
+
+        /* 2. Style Grid (Image Cards) */
+        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 50px; }
+        .style-card { position: relative; cursor: pointer; border-radius: 12px; overflow: hidden; height: 150px; }
+        .style-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; filter: brightness(0.7); }
+        .style-card span { 
+            position: absolute; bottom: 15px; left: 15px; color: white; font-weight: 800; z-index: 2; font-size: 18px; 
+        }
+        .style-checkbox { display: none; }
+        
+        /* Hiệu ứng khi chọn Style */
+        .style-checkbox:checked + .style-card img { filter: brightness(0.4); transform: scale(1.1); }
+        .style-checkbox:checked + .style-card::after {
+            content: '✓'; position: absolute; top: 10px; right: 10px; 
+            background: white; color: black; width: 30px; height: 30px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%; padding: 20px; background: black; color: white; font-size: 18px; font-weight: 800;
+            border: none; border-radius: 50px; cursor: pointer; transition: 0.3s;
+        }
+        .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        /* --- AI LOADING OVERLAY --- */
+        #ai-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white;
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .loader { width: 50px; height: 50px; border: 5px solid #eee; border-top-color: black; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .ai-text { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+        .ai-sub { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Let's curate your feed.</h1>
+            <p>Help ReFYShoe AI understand your vibe to suggest the best looks.</p>
+        </div>
+
+        <form action="/onboarding" method="POST" id="onboardingForm" onsubmit="showAiLoading(event)">
+            
+            <div class="section-title">Who are you shopping for?</div>
+            <div class="gender-options">
+                <input type="radio" name="gender" value="men" id="men" class="gender-input" required>
+                <label for="men" class="gender-label">Men</label>
+
+                <input type="radio" name="gender" value="women" id="women" class="gender-input">
+                <label for="women" class="gender-label">Women</label>
+                
+                <input type="radio" name="gender" value="unisex" id="unisex" class="gender-input">
+                <label for="unisex" class="gender-label">Everyone</label>
+            </div>
+
+            <div class="section-title">Pick styles you like</div>
+            <div class="style-grid">
+                <label>
+                    <input type="checkbox" name="styles" value="Streetwear" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1523398002811-999ca8dec234?q=80&w=1000" alt="Streetwear">
+                        <span>Streetwear</span>
+                    </div>
+                </label>
+                <label>
+                    <input type="checkbox" name="styles" value="Minimalist" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000" alt="Minimalist">
+                        <span>Minimalist</span>
+                    </div>
+                </label>
+                <label>
+                    <input type="checkbox" name="styles" value="Vintage" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=1000" alt="Vintage">
+                        <span>Vintage</span>
+                    </div>
+                </label>
+                 <label>
+                    <input type="checkbox" name="styles" value="Luxury" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1000" alt="Luxury">
+                        <span>Luxury</span>
+                    </div>
+                </label>
+                 <label>
+                    <input type="checkbox" name="styles" value="Sporty" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1000" alt="Sporty">
+                        <span>Sporty</span>
+                    </div>
+                </label>
+                 <label>
+                    <input type="checkbox" name="styles" value="Casual" class="style-checkbox">
+                    <div class="style-card">
+                        <img src="https://images.unsplash.com/photo-1516762689617-e1cffcef479d?q=80&w=1000" alt="Casual">
+                        <span>Casual</span>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit" class="submit-btn">GENERATE MY FEED ✨</button>
+        </form>
+    </div>
+
+    <div id="ai-overlay">
+        <div class="loader"></div>
+        <div class="ai-text">ReFY AI is analyzing...</div>
+        <div class="ai-sub" id="ai-subtext">Matching your style with 5,000+ products</div>
+    </div>
+
+    <script>
+        function showAiLoading(event) {
+            // Ngăn form gửi đi ngay lập tức
+            event.preventDefault();
+            
+            // Hiện màn hình loading giả
+            const overlay = document.getElementById('ai-overlay');
+            const subtext = document.getElementById('ai-subtext');
+            overlay.style.display = 'flex';
+            
+            // Thay đổi chữ để user thấy AI đang "làm việc" thật
+            setTimeout(() => { subtext.innerText = "Building your personalized graph..."; }, 1000);
+            setTimeout(() => { subtext.innerText = "Curating top recommendations..."; }, 2500);
+            
+            // Sau 3.5 giây mới gửi form thật
+            setTimeout(() => {
+                event.target.submit();
+            }, 3500);
+        }
+    </script>
+
+</body>
+</html>

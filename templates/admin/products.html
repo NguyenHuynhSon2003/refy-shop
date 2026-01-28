@@ -1,0 +1,121 @@
+{% extends 'admin/layout.html' %}
+
+{% block admin_content %}
+<div class="header">
+    <h2>Product Management</h2>
+</div>
+
+<div class="form-card">
+    <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+        Add New Product
+    </h3>
+    
+    <form method="POST" action="/admin/products">
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" name="name" required placeholder="Ex: Nike Air Force 1" style="font-size: 16px; font-weight: bold;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Brand</label>
+                        <input type="text" name="brand" required placeholder="Ex: Nike">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category">
+                            {% for cat in categories %}
+                                <option value="{{ cat.name }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 20px 0; width: 200%;">
+                        <label style="font-weight: bold; margin-bottom: 10px; display: block;">Product Description</label>
+                        <textarea id="description" name="description" placeholder="Write something amazing..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group">
+                    <label>Price (VND)</label>
+                    <input type="number" name="price" required style="color: #2da44e; font-weight: bold;">
+                </div>
+                <div class="form-group">
+                    <label>Stock Quantity</label>
+                    <input type="number" name="stock" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select name="gender">
+                        <option value="men">Men</option>
+                        <option value="women">Women</option>
+                        <option value="unisex">Unisex</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold;">Product Images (Paste URL)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                
+                <div class="form-group">
+                    <label style="font-size: 12px; color: #666;">Main Image (Cover)</label>
+                    <input type="text" name="image1" placeholder="http://..." required>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size: 12px; color: #666;">Side View</label>
+                    <input type="text" name="image2" placeholder="http://...">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size: 12px; color: #666;">On Feet / Detail</label>
+                    <input type="text" name="image3" placeholder="http://...">
+                </div>
+
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px; width: 100%; padding: 12px;">+ Add Product Now</button>
+    </form>
+</div>
+
+<div style="margin-top: 40px;">
+    <h3>Product List</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="60">Image</th>
+                <th>Name</th>
+                <th>Stock</th>
+                <th>Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products %}
+            <tr>
+                <td>
+                    {% if p.images and p.images|length > 0 %}
+                        <img src="{{ p.images[0] }}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover;">
+                    {% elif p.image %}
+                        <img src="{{ p.image }}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover;">
+                    {% endif %}
+                </td>
+                <td><b>{{ p.name }}</b><br><small style="color:#718096">{{ p.category_name}}</small></td>
+                <td><span style="background: #edf2f7; padding: 2px 6px; border-radius: 4px; font-size: 12px;">{{ p.stock }}</span></td>
+                <td>{{ "{:,.0f}".format(p.price) }} đ</td>
+                <td>
+                    <a href="/admin/products/edit/{{ p._id }}" class="btn btn-primary" style="font-size: 12px; padding: 5px 10px;">Edit</a>
+                    <a href="/admin/products/delete/{{ p._id }}" class="btn btn-danger" style="font-size: 12px; padding: 5px 10px;" onclick="return confirm('Delete?')">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

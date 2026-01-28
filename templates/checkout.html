@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+    <h2 style="text-align: center; margin-bottom: 30px;">SHIPPING INFORMATION</h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <form method="POST" style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Full Name</label>
+                <input type="text" name="fullname" required 
+                    value="{{ user.full_name if user and user.full_name else '' }}" 
+                    placeholder="Enter your full name"
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Phone Number</label>
+                <input type="tel" name="phone" required 
+                    value="{{ user.phone if user and user.phone else '' }}" 
+                    placeholder="Enter your phone number"
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Shipping Address</label>
+                <textarea name="address" required rows="3" 
+                        placeholder="Enter your address"
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">{{ user.address if user and user.address else '' }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Note (Optional)</label>
+                <input type="text" name="note" class="form-control" style="width: 100%; padding: 10px; margin-top: 5px;">
+            </div>
+
+            <div class="payment-methods" style="margin-bottom: 30px; background: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                <h4 style="margin-top: 0;">Payment Method</h4>
+                
+                <div style="margin-bottom: 10px;">
+                    <input type="radio" id="cod" name="payment_method" value="COD" checked>
+                    <label for="cod" style="font-weight: normal; cursor: pointer;">
+                        📦 Cash on Delivery (COD)
+                    </label>
+                </div>
+
+                <div>
+                    <input type="radio" id="momo" name="payment_method" value="MoMo QR">
+                    <label for="momo" style="font-weight: normal; cursor: pointer; color: #a50064;">
+                        <img src="https://developers.momo.vn/v3/assets/images/square-8c08a00f550e40a2efafea4a005b1232.png" style="height: 40px; vertical-align: middle;">
+                        MoMo E-Wallet
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" style="width: 100%; padding: 15px; background: black; color: white; border: none; font-weight: bold; cursor: pointer;">
+                PLACE ORDER ->
+            </button>
+        </form>
+
+        <div style="border: 1px solid #eee; padding: 20px; height: fit-content;">
+            <h4>Order Summary</h4>
+            <hr>
+            {% for item in items %}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px;">
+                <span>{{ item.quantity }}x {{ item.name }} ({{ item.size }})</span>
+                <span>${{ "{:,.0f}".format(item.price * item.quantity) }}</span>
+            </div>
+            {% endfor %}
+            <hr>
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px;">
+                <span>Total:</span>
+                <span style="color: #e74c3c;">${{ "{:,.0f}".format(total) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

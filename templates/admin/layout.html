@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RefyShoe Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; display: flex; height: 100vh; background: #f4f6f8; }
+        
+        /* Sidebar */
+        .sidebar { width: 250px; background: #1a1c23; color: white; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; font-weight: 900; font-size: 24px; letter-spacing: 2px; border-bottom: 1px solid #333; }
+        .menu { flex: 1; padding-top: 20px; }
+        .menu a { display: block; padding: 15px 20px; color: #a0aec0; text-decoration: none; font-weight: 600; transition: 0.3s; }
+        .menu a:hover, .menu a.active { background: #7e3af2; color: white; }
+        .logout { padding: 20px; border-top: 1px solid #333; color: #fc8181; text-decoration: none; }
+
+        /* Main Content */
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h2 { margin: 0; color: #1a202c; }
+
+        /* Table Style */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f7fafc; font-weight: 600; color: #4a5568; }
+        tr:hover { background: #f7fafc; }
+        .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-primary { background: #7e3af2; color: white; }
+        .btn-danger { background: #e53e3e; color: white; }
+        
+        /* Form Style */
+        .form-card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #4a5568; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box;}
+    </style>
+    <script src="https://cdn.tiny.cloud/1/7depat370gip92ix9t7axrkc6nkry2zt2361vgfpjv97jcu6/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+    <script>
+        tinymce.init({
+            selector: '#description', // Nó sẽ biến thẻ textarea có id="description" thành bộ soạn thảo
+            plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+        });
+    </script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">REFYSHOE ADMIN</div>
+        <div class="menu">
+            <a href="/admin" class="{{ 'active' if page == 'dashboard' }}">📊 Dashboard</a>
+            <a href="/admin/products" class="{{ 'active' if page == 'products' }}">👟 Products</a>
+            <a href="/admin/categories" class="{{ 'active' if page == 'categories' else '' }}">📦 Categories</a>
+            <a href="/admin/users" class="{{ 'active' if page == 'users' }}">👥 Users</a>
+        </div>
+        <a href="/" class="logout">⬅ Back to Shop</a>
+    </div>
+    <div class="main">
+        {% block admin_content %}{% endblock %}
+    </div>
+</body>
+</html>

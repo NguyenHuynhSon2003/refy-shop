@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 80px auto; text-align: center; padding: 0 20px;">
+    
+    <div style="margin-bottom: 30px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 10px;">Thank You!</h1>
+    <h3 style="font-weight: normal; color: #666; margin-bottom: 30px;">Your order has been placed successfully.</h3>
+
+    <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 40px;">
+        <p style="margin: 0; color: #333;">We will contact you shortly to confirm your order.</p>
+        <p style="margin: 5px 0 0; font-size: 14px; color: #888;">Please check your email for order details.</p>
+    </div>
+
+    <a href="/" style="text-decoration: none;">
+        <button style="background-color: black; color: white; padding: 15px 40px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; transition: 0.3s; border-radius: 4px;">
+            CONTINUE SHOPPING
+        </button>
+    </a>
+</div>
+{% endblock %}

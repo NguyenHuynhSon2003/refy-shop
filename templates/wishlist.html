@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="padding: 40px 0;">
+    <h1 style="text-align: center; text-transform: uppercase; margin-bottom: 40px;">My Wishlist</h1>
+
+    {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit;">
+                    <div class="image-container">
+                        <img src="{{ product.images[0] if product.images else product.image }}">
+                        <button class="wishlist-btn active" onclick="toggleWishlist(event, '{{ product._id }}')">❤</button>
+                    </div>
+                    <div class="product-info">
+                        <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                        <p>{{ product.name }}</p>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; color: #666;">
+            <p>Your wishlist is currently empty.</p>
+            <a href="/" style="color: #2d2d2d; font-weight: bold; text-decoration: underline;">Continue Shopping</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

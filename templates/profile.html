@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="padding: 40px 20px;">
+    
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px;">
+        
+        <div style="background: #fff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); height: fit-content;">
+            
+            <form action="/profile" method="POST">
+                
+                <div style="text-align: center; margin-bottom: 30px; position: relative;">
+                    
+                    <div class="avatar-wrapper" onclick="openAvatarModal()">
+                        <img id="currentAvatarImg" src="{{ user.avatar }}" alt="Avatar">
+                        
+                        <div class="avatar-overlay">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                            </svg>
+                            <span>Change Avatar</span>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="avatarInput" name="avatar_url" value="{{ user.avatar }}">
+
+                    <h2 style="margin-top: 15px; font-weight: 800; font-size: 20px;">{{ user.full_name or user.name }}</h2>
+                    <p style="color: #666; font-size: 14px;">{{ user.email }}</p>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 8px; letter-spacing: 1px;">FULL NAME</label>
+                    <input type="text" name="full_name" value="{{ user.full_name if user.full_name else '' }}" 
+                        style="width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 6px; background: #f9f9f9;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 8px; letter-spacing: 1px;">PHONE NUMBER</label>
+                    <input type="text" name="phone" value="{{ user.phone if user.phone else '' }}" 
+                        style="width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 6px; background: #f9f9f9;">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 8px; letter-spacing: 1px;">ADDRESS</label>
+                    <textarea name="address" rows="3" 
+                            style="width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 6px; background: #f9f9f9;">{{ user.address if user.address else '' }}</textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <a href="/onboarding" style="text-decoration: none; color: black; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        <span style="text-decoration: underline;">Customize Onboarding</span>
+                    </a>
+                </div>
+
+                <button type="submit" style="width: 100%; background: black; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; transition: 0.3s;">
+                    SAVE CHANGES
+                </button>
+            </form>
+        </div>
+
+        <div id="avatarModal" class="modal-overlay" onclick="closeModal(event)">
+            <div class="modal-content">
+                <h3 style="text-align: center; margin-bottom: 20px; font-weight: 800;">Choose your look</h3>
+                
+                <div class="avatar-grid">
+                    {% for i in range(1, 13) %}
+                        <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Avatar{{ i }}" 
+                            onclick="selectAvatar(this.src)" 
+                            class="avatar-option">
+                    {% endfor %}
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" onclick="selectAvatar(this.src)" class="avatar-option">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" onclick="selectAvatar(this.src)" class="avatar-option">
+                    <img src="https://api.dicebear.com/7.x/micah/svg?seed=Leo" onclick="selectAvatar(this.src)" class="avatar-option">
+                    <img src="https://api.dicebear.com/7.x/micah/svg?seed=Nala" onclick="selectAvatar(this.src)" class="avatar-option">
+                </div>
+                
+                <button onclick="document.getElementById('avatarModal').style.display='none'" 
+                        style="width: 100%; margin-top: 20px; padding: 10px; background: #eee; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h2 style="font-weight: 900; margin-bottom: 20px; text-transform: uppercase;">Order History</h2>
+
+            {% if orders and orders|length > 0 %}
+                {% for order in orders %}
+                <div style="border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
+                        <div>
+                            <span style="font-weight: bold; color: #555;">Date:</span> {{ order.created_at.strftime('%d-%m-%Y') }}
+                        </div>
+                        <div>
+                            <span style="font-weight: bold;">Status:</span> 
+                            <span class="status-badge status-{{ order.status | lower }}">
+                                {{ order.status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        {% for item in order['items'] %}
+                        <div style="display: flex; gap: 15px; margin-bottom: 10px; align-items: flex-start;">
+                            <img src="{{ item.image }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                            
+                            <div>
+                                <p style="font-weight: bold; margin: 0; font-size: 14px;">{{ item.name }}</p>
+                                <p style="font-size: 12px; color: #777; margin: 2px 0;">Size: {{ item.size }} | x{{ item.quantity }}</p>
+                            </div>
+
+                            <div style="margin-left: auto; text-align: right;">
+                                <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+                                    {{ "{:,.0f}".format(item.price * item.quantity) }} đ
+                                </div>
+
+                                {% if order.status|lower == 'delivered' %}
+                                <a href="{{ url_for('product_detail', product_id=item.product_id) }}#review-section" 
+                                style="display: inline-block; font-size: 11px; font-weight: bold; background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; text-decoration: none;">
+                                ★ Give feedback right now!
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div style="text-align: right; border-top: 1px solid #f0f0f0; padding-top: 10px;">
+                        Total: <span style="font-size: 18px; font-weight: 900; color: #e74c3c;">{{ "{:,.0f}".format(order.total_price) }} đ</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; background: #f9f9f9; border-radius: 8px;">
+                    <p style="color: #666;">You haven't placed any orders yet.</p>
+                    <a href="/" style="text-decoration: underline; font-weight: bold;">Start Shopping</a>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Mở Modal
+    function openAvatarModal() {
+        document.getElementById('avatarModal').style.display = 'flex';
+    }
+
+    // Đóng Modal khi bấm ra ngoài
+    function closeModal(event) {
+        if (event.target.id === 'avatarModal') {
+            document.getElementById('avatarModal').style.display = 'none';
+        }
+    }
+
+    // Khi chọn 1 avatar
+    function selectAvatar(url) {
+        // 1. Đổi ảnh hiển thị ngay lập tức
+        document.getElementById('currentAvatarImg').src = url;
+        
+        // 2. Gán URL vào input ẩn để gửi đi khi bấm Save
+        document.getElementById('avatarInput').value = url;
+        
+        // 3. Đóng modal
+        document.getElementById('avatarModal').style.display = 'none';
+    }
+</script>
+
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}

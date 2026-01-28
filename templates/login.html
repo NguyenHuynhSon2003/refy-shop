@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | ReFY Shoe</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        body { height: 100vh; display: flex; overflow: hidden; background: white; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="brand-side">
+        <div class="brand-text">
+            <h1>ELEVATE YOUR STYLE.</h1>
+            <p>Join ReFY Shoe today. Exclusive drops, personalized AI recommendations, and premium fashion await you.</p>
+        </div>
+    </div>
+
+    <div class="form-side">
+        <div class="auth-wrapper-login">
+            <a href="/" class="logo-text">REFYSHOE.</a>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ '⚠️' if category == 'error' else '✅' }}</span>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div id="login-container">
+                <div class="welcome-text">
+                    <h2>Welcome back</h2>
+                    <p>Please enter your details to sign in.</p>
+                </div>
+
+                <form action="/login" method="POST">
+                    <input type="hidden" name="action" value="login">
+                    
+                    <div class="login-form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" value="{{ email_entered if email_entered else '' }}" placeholder="name@example.com" required>
+                    </div>
+                    
+                    <div class="login-form-group">
+                        <label>Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="login_pass" placeholder="••••••••" required>
+                            <span class="toggle-password" 
+                                onmousedown="showPassword('login_pass', this)" 
+                                onmouseup="hidePassword('login_pass', this)" 
+                                onmouseleave="hidePassword('login_pass', this)">
+                                👁️
+                            </span>
+                        </div>
+                        <div class="forgot-pass"><a href="#">Forgot password?</a></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary-login">Sign in</button>
+                </form>
+
+                <div class="switch-auth">
+                    Don't have an account? <a onclick="toggleForm('register')">Create free account</a>
+                </div>
+            </div>
+
+            <div id="register-container" style="display: none;">
+                <div class="welcome-text">
+                    <h2>Create account</h2>
+                    <p>Start shopping today.</p>
+                </div>
+
+                <form action="/login" method="POST">
+                    <input type="hidden" name="action" value="register">
+                    
+                    <div class="login-form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" placeholder="name@example.com" required>
+                    </div>
+                    
+                    <div class="login-form-group">
+                        <label>Create Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="reg_password" placeholder="••••••••" required>
+                            <span class="toggle-password" 
+                                onmousedown="showPassword('reg_password', this)" 
+                                onmouseup="hidePassword('reg_password', this)" 
+                                onmouseleave="hidePassword('reg_password', this)">
+                                👁️
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="login-form-group">
+                        <label>Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" name="confirm_password" id="reg_confirm_password" placeholder="••••••••" required>
+                            <span class="toggle-password" 
+                                onmousedown="showPassword('reg_confirm_password', this)" 
+                                onmouseup="hidePassword('reg_confirm_password', this)" 
+                                onmouseleave="hidePassword('reg_confirm_password', this)">
+                                👁️
+                            </span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary-login">Create Account</button>
+                </form>
+
+                <div class="switch-auth">
+                    Already have an account? <a onclick="toggleForm('login')">Sign in</a>
+                </div>
+            </div>
+
+            <div class="divider-login"><span>OR CONTINUE WITH</span></div>
+
+            <a href="/login/google" class="google-btn">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" height="20">
+                Sign in with Google
+            </a>
+            
+        </div>
+    </div>
+
+    <script>
+        function toggleForm(mode) {
+            const loginBox = document.getElementById('login-container');
+            const registerBox = document.getElementById('register-container');
+            
+            if (mode === 'register') {
+                loginBox.style.display = 'none';
+                registerBox.style.display = 'block';
+            } else {
+                loginBox.style.display = 'block';
+                registerBox.style.display = 'none';
+            }
+        }
+        // Hàm kiểm tra mật khẩu trước khi gửi
+        function validateRegister() {
+            var password = document.getElementById("reg_password").value;
+            var confirmPassword = document.getElementById("reg_confirm_password").value;
+
+            if (password != confirmPassword) {
+                alert("The verification password doesn't match! Please check again.");
+                return false; // Chặn không cho gửi form
+            }
+            return true; // Cho phép gửi
+        }
+
+        function showPassword(inputId, icon) {
+            document.getElementById(inputId).type = "text";
+            icon.textContent = "🙈"; // Đổi icon
+        }
+
+        // Hàm 2: Ẩn mật khẩu (Khi nhả chuột hoặc rời chuột)
+        function hidePassword(inputId, icon) {
+            document.getElementById(inputId).type = "password";
+            icon.textContent = "👁️"; // Đổi lại icon
+        }
+
+    </script>
+
+</body>
+</html>

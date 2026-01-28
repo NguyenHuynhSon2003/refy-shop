@@ -1,0 +1,59 @@
+{% extends 'admin/layout.html' %}
+
+{% block admin_content %}
+<div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>User Management</h2>
+    <span style="color: #718096">Total Users: {{ users|length }}</span>
+</div>
+
+<table style="width: 100%; border-collapse: collapse;">
+    <thead>
+        <tr style="text-align: left; background-color: #f7fafc; border-bottom: 2px solid #edf2f7;">
+            <th style="padding: 12px;">Name / Email</th>
+            <th style="padding: 12px;">Joined At</th>
+            <th style="padding: 12px;">Preferences</th>
+            <th style="padding: 12px;">Role</th>
+            <th style="padding: 12px; text-align: right;">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr style="border-bottom: 1px solid #edf2f7;">
+            <td style="padding: 12px;">
+                <b>{{ u.name }}</b><br>
+                <small style="color:#718096">{{ u.email }}</small>
+            </td>
+            <td style="padding: 12px;">{{ u._id.generation_time.strftime('%Y-%m-%d') }}</td>
+            
+            <td style="padding: 12px;">
+                {% if u.preferences %}
+                   <span style="font-size: 13px; color: #4a5568;">{{ u.preferences.styles | join(', ') }}</span>
+                {% else %}
+                   <span style="color: #cbd5e0; font-size: 12px;">No data</span>
+                {% endif %}
+            </td>
+            
+            <td style="padding: 12px;">
+                {% if u.email == 'admin@refy.com' or u.role == 'admin' %}
+                    <span style="background: #e9d8fd; color: #553c9a; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">ADMIN</span>
+                {% else %}
+                    <span style="background: #edf2f7; color: #4a5568; padding: 2px 8px; border-radius: 4px; font-size: 11px;">USER</span>
+                {% endif %}
+            </td>
+
+            <td style="padding: 12px; text-align: right;">
+                {% if u._id|string != session['user_id'] %}
+                    <a href="{{ url_for('delete_user', user_id=u._id) }}" 
+                       onclick="return confirm('⚠️ CẢNH BÁO: Bạn có chắc chắn muốn xóa user {{ u.name }}? Dữ liệu đơn hàng và đánh giá của họ vẫn sẽ được giữ lại nhưng họ không thể đăng nhập được nữa.')"
+                       style="color: #e53e3e; text-decoration: none; font-weight: 600; font-size: 13px; padding: 5px 10px; border: 1px solid #e53e3e; border-radius: 5px; transition: 0.2s;">
+                       Delete
+                    </a>
+                {% else %}
+                    <span style="color: #a0aec0; font-size: 12px; font-style: italic;">(You)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

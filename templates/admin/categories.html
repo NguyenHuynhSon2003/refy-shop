@@ -1,0 +1,48 @@
+{% extends 'admin/layout.html' %}
+
+{% block admin_content %}
+<div class="header">
+    <h2>Category Management</h2>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+    
+    <div class="form-card" style="height: fit-content;">
+        <h3>Add New Category</h3>
+        <form method="POST">
+            <div class="form-group">
+                <label>Category Name</label>
+                <input type="text" name="name" required placeholder="Ex: Sports, T-Shirts...">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">+ Add Category</button>
+        </form>
+    </div>
+
+    <div class="form-card">
+        <h3>Category List</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Created At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td><b>{{ cat.name }}</b></td>
+                    <td>{{ cat.created_at.strftime('%d-%m-%Y') }}</td>
+                    <td>
+                        <a href="/admin/categories/delete/{{ cat._id }}" class="btn btn-danger" 
+                           style="padding: 5px 10px; font-size: 12px;"
+                           onclick="return confirm('Delete this category?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

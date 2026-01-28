@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width: 500px; margin: 50px auto; text-align: center; background: white; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+    
+    <div style="background: #a50064; padding: 20px; color: white;">
+        <img src="https://developers.momo.vn/v3/assets/images/square-8c08a00f550e40a2efafea4a005b1232.png" alt="MoMo" style="height: 40px; background: white; padding: 5px; border-radius: 4px;">
+        <h3 style="margin: 10px 0 0;">Scan to Pay</h3>
+    </div>
+
+    <div style="padding: 30px;">
+        <p style="color: #666; margin-bottom: 20px;">Use <b>MoMo App</b> to scan this QR Code</p>
+        
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=Payment_RefyShop_{{ total }}" 
+             style="width: 200px; height: 200px; border: 2px solid #eee; padding: 10px; border-radius: 8px;">
+        
+        <div style="margin-top: 20px; font-size: 24px; font-weight: bold; color: #a50064;">
+            Total: ${{ "{:,.0f}".format(total) }}
+        </div>
+
+        <p style="font-size: 12px; color: #999; margin-top: 10px;">
+            Waiting for payment confirmation...
+        </p>
+
+        <hr style="margin: 20px 0;">
+
+        <form action="/place-order" method="POST">
+            <button type="submit" class="btn-confirm" 
+                    style="width: 100%; padding: 15px; background: #a50064; color: white; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s;">
+                CONFIRM PAYMENT DONE ✅
+            </button>
+        </form>
+        
+        <a href="/checkout" style="display: block; margin-top: 15px; color: #666; font-size: 13px; text-decoration: none;">&larr; Back to Shipping Info</a>
+    </div>
+</div>
+
+<style>
+    .btn-confirm:hover {
+        background: #8e0056 !important;
+        transform: scale(1.02);
+    }
+</style>
+{% endblock %}

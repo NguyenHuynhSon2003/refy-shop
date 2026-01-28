@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReFyShoe | Online Fashion</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <header class="asos-header">
+        <div class="top-bar">
+            
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span><span></span><span></span>
+            </div>
+
+            <a href="/" class="logo-container">
+                <span class="logo-text">REFYSHOE</span>
+                <span class="logo-slogan slogan-blink">Recommended For You</span>
+            </a>
+
+            <nav class="gender-nav">
+                <a href="/men" class="{{ 'active' if request.path == '/men' else '' }}">MEN</a>
+                <a href="/women" class="{{ 'active' if request.path == '/women' else '' }}">WOMEN</a>
+                <a href="/collection/new-drops" class="{{ 'active' if request.path == '/collection/new-drops' else '' }}">NEW DROPS</a>
+                <a href="/collection/sale" class="sale-red {{ 'active' if request.path == '/collection/sale' else '' }}">SALE</a>
+            </nav>
+
+            <div class="search-wrapper">
+                <form action="/search" method="GET">
+                    <input type="text" name="q" placeholder="Search for items..." class="search-input" autocomplete="off">
+                    <button type="submit" class="search-btn">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </form>
+            </div>
+
+            <div class="user-actions">
+                {% if current_user %}
+                    <span class="user-greeting">Hi, 
+                        {% if current_user is string %}
+                            {{ current_user }}
+                        {% else %}
+                            {{ (current_user.full_name or current_user.name or 'User').split()[0] }}
+                        {% endif %}
+                    </span>
+                    
+                    <a href="{{ '/admin' if is_admin_user else '/profile' }}">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </a>
+                    
+                    <a href="/logout" title="Logout">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </a>
+                {% else %}
+                    <a href="/login">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </a>
+                {% endif %}
+                
+                <a href="/wishlist" class="wishlist-link">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </a>
+                
+                <a href="{{ url_for('view_cart') }}">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        {% if cart_count > 0 %}
+                            <span style="background: #ff4757; color: white; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 10px; position: absolute; top: -8px; right: -8px;">{{ cart_count }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="mobile-menu-overlay" onclick="toggleMenu()"></div>
+    <div class="mobile-sidebar" id="mobileSidebar">
+        <form action="/search" method="GET" class="mobile-search">
+            <input type="text" name="q" placeholder="Search products...">
+        </form>
+        <a href="/men" class="mobile-link">MEN</a>
+        <a href="/women" class="mobile-link">WOMEN</a>
+        <a href="/collection/new-drops" class="mobile-link">NEW DROPS</a>
+        <a href="/collection/sale" class="mobile-link" style="color: red;">SALE</a>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        {% if current_user %}
+            <a href="/logout" class="mobile-link" style="color: #666; font-weight: 400;">Logout</a>
+        {% else %}
+            <a href="/login" class="mobile-link" style="color: #666; font-weight: 400;">Login / Register</a>
+        {% endif %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer-main">
+        <div class="footer-columns">
+            <div class="footer-col">
+                <h4>Help & Information</h4>
+                <ul>
+                    <li><a href="#">Help</a></li>
+                    <li><a href="#">Track Order</a></li>
+                    <li><a href="#">Delivery & Returns</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>About REFYSHOE</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers at ReFYSHOE</a></li>
+                    <li><a href="#">Corporate Responsibility</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>More From ReFYSHOE</h4>
+                <ul>
+                    <li><a href="#">Mobile and Asos Apps</a></li>
+                    <li><a href="#">ReFYSHOE Marketplace</a></li>
+                    <li><a href="#">Gift Vouchers</a></li>
+                </ul>
+            </div>
+             <div class="footer-col">
+                <h4>Shopping From</h4>
+                <ul>
+                    <li><a href="#">You're in 🇻🇳 Vietnam</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+    <div class="footer-bottom">
+        <div>&copy; 2026 ReFY SHOE</div>
+        <div class="legal-links">
+            <a href="#">Privacy & Cookies</a>
+            <a href="#">Ts&Cs</a>
+            <a href="#">Accessibility</a>
+        </div>
+    </div>
+
+    <div id="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast {{ category }}">
+                        <div class="toast-icon"></div>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileSidebar').classList.toggle('active');
+            document.querySelector('.mobile-menu-overlay').classList.toggle('active');
+        }
+
+        // Tự động tắt Toast
+        function removeToast(toastElement) {
+            toastElement.style.animation = "fadeOut 0.5s forwards";
+            setTimeout(() => {
+                if (toastElement.parentNode) toastElement.parentNode.removeChild(toastElement);
+            }, 500);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => {
+                setTimeout(() => removeToast(toast), 3000);
+            });
+        });
+
+        // Hàm JS tạo Toast động (cho Wishlist)
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement("div");
+            toast.className = `toast ${type}`;
+            
+            // Icon logic giả lập
+            let iconChar = 'ℹ️';
+            if (type === 'success') iconChar = '✅';
+            if (type === 'error') iconChar = '❌';
+            if (type === 'warning') iconChar = '⚠️';
+
+            toast.innerHTML = `<div class="toast-icon" style="display:contents">${iconChar}</div> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => removeToast(toast), 3000);
+        }
+
+        // Wishlist
+        function toggleWishlist(event, productId) {
+            event.preventDefault();
+            event.stopPropagation();
+            const btn = event.currentTarget;
+            fetch(`/api/toggle_wishlist/${productId}`, { method: 'POST' })
+            .then(res => {
+                if(res.status === 401) { 
+                    showToast("Please login first!", "warning");
+                    return null; 
+                }
+                return res.json();
+            })
+            .then(data => {
+                if(!data) return;
+                if(data.status === 'added') {
+                    btn.classList.add('active'); 
+                    showToast("Added to Wishlist", "success");
+                } else {
+                    btn.classList.remove('active'); 
+                    showToast("Removed from Wishlist", "info");
+                    if(window.location.pathname === '/wishlist') setTimeout(() => location.reload(), 500);
+                }
+            })
+            .catch(err => { console.error(err); showToast("Something went wrong!", "error"); });
+        }
+    </script>
+</body>
+</html>

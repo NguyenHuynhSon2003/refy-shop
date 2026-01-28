@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% if not search_query %}
+    <section class="hero-banner">
+        <div class="hero-slides">
+            <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1552346154-21d32810aba3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1460353581641-37baddab0fa2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
+        </div>
+        
+        <div class="overlay"></div>
+
+        <div class="hero-content">
+            {% if gender == 'men' %}
+                <h1>MEN'S SNEAKERS</h1>
+                <p>Exclusive drops for him</p>
+            {% elif gender == 'women' %}
+                <h1>WOMEN'S SNEAKERS</h1>
+                <p>Latest trends for her</p>
+            {% else %}
+                <h1>SNEAKER DROPS</h1>
+                <p>The latest heat from Nike, Adidas & New Balance</p>
+            {% endif %}
+            
+            <a href="#shop-here" class="shop-now-btn">SHOP NOW</a>
+        </div>
+    </section>
+    {% endif %}
+    <div class="ticker-container">
+        <div class="ticker-wrapper">
+            {% for i in range(4) %} <div class="ticker-content">
+                SALE: FURTHER REDUCTIONS &nbsp; • &nbsp; UP TO 70% OFF &nbsp; • &nbsp; USE CODE: <strong>REFY20</strong> &nbsp; • &nbsp; FREE SHIPPING WORLDWIDE &nbsp; • &nbsp; 
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section-header" style="text-align: center; margin: 50px 0 30px;">
+        
+        {% if search_query %}
+            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">
+                SEARCH RESULTS FOR "{{ search_query }}"
+            </h2>
+            <p style="color: #666; font-size: 14px;">Found {{ products|length }} products</p>
+            
+            {% if products|length == 0 %}
+                <div style="margin-top: 30px; padding: 20px; background: #f5f5f5; display: inline-block; border-radius: 8px;">
+                    <p style="margin-bottom: 15px; color: #333;">We couldn't find any matches for your keyword.</p>
+                    <a href="/" style="color: black; text-decoration: underline; font-weight: bold; font-size: 14px;">
+                        &larr; Return to Home Store
+                    </a>
+                </div>
+            {% endif %}
+
+        {% elif page_title %}
+            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
+                {{ page_title }}
+            </h2>
+
+        {% else %}
+            <h2 style="font-size: 28px; font-weight: 800; letter-spacing: 1px;">NEW ARRIVALS</h2>
+            <p style="color: #777; margin-top: 5px; font-style: italic;">Check out the latest heat</p>
+        {% endif %}
+
+    </div>
+
+    <section class="product-grid" id="shop-here">
+        {% for product in products %}
+        <div class="product-card">
+            <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
+                
+                <div class="image-container">
+                    {% set main_image = product.images[0] if product.images and product.images|length > 0 else (product.image if product.image else 'https://via.placeholder.com/300') %}
+                    <img src="{{ main_image }}" alt="{{ product.name }}">
+                    <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" 
+                            onclick="toggleWishlist(event, '{{ product._id }}')">
+                        {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                    </button> 
+                </div>
+
+                <div class="product-info">
+                    <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
+                    <p style="color: #666; font-size: 12px; text-transform: uppercase;">
+                        {{ product.category_name if product.category_name else 'Fashion' }}
+                    </p>
+                    <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                </div>
+
+            </a>
+        </div>
+        {% endfor %}
+    </section>
+
+    <script>
+    // ==========================================
+    // 1. LOGIC SLIDER (GIỮ NGUYÊN)
+    // ==========================================
+    const slides = document.querySelectorAll('.slide');
+    if (slides.length > 0) {
+        let currentSlide = 0;
+        function nextSlide() {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+        setInterval(nextSlide, 5000);
+    }
+</script>
+
+{% endblock %}
