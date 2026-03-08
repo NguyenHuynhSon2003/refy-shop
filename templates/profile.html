@@ -92,15 +92,28 @@
                 {% for order in orders %}
                 <div style="border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                     
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
+                        
                         <div>
                             <span style="font-weight: bold; color: #555;">Date:</span> {{ order.created_at.strftime('%d-%m-%Y') }}
                         </div>
-                        <div>
-                            <span style="font-weight: bold;">Status:</span> 
-                            <span class="status-badge status-{{ order.status | lower }}">
-                                {{ order.status }}
-                            </span>
+                        
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            
+                            <div>
+                                <span style="font-weight: bold;">Status:</span> 
+                                <span class="status-badge status-{{ order.status | lower }}">
+                                    {{ order.status }}
+                                </span>
+                            </div>
+
+                            {% if order.status == 'Pending' %}
+                            <form action="{{ url_for('cancel_order', order_id=order._id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');" style="margin: 0;">
+                                <button type="submit" style="background-color: #fff; color: #e74c3c; border: 1px solid #e74c3c; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+                                    Cancel Order
+                                </button>
+                            </form>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -122,7 +135,7 @@
                                 {% if order.status|lower == 'delivered' %}
                                 <a href="{{ url_for('product_detail', product_id=item.product_id) }}#review-section" 
                                 style="display: inline-block; font-size: 11px; font-weight: bold; background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; text-decoration: none;">
-                                ★ Give feedback right now!
+                                ★ Give feedback
                                 </a>
                                 {% endif %}
                             </div>

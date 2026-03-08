@@ -19,8 +19,25 @@
         <p style="color: #718096;">Categories</p>
     </div>
     <div class="form-card" style="text-align: center;">
-        <h3 style="margin: 0; font-size: 36px; color: #d69e2e;">---</h3>
+        <h3 style="margin: 0; font-size: 36px; color: #d69e2e;">{{ "{:,.0f}".format(stats.revenue) }} đ</h3>
         <p style="color: #718096;">Revenue</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px;">
+    
+    <div class="form-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <h4 style="margin-top: 0; margin-bottom: 15px; color: #4a5568;">📦 Order Status</h4>
+        <div style="height: 250px;">
+            <canvas id="orderStatusChart"></canvas>
+        </div>
+    </div>
+
+    <div class="form-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <h4 style="margin-top: 0; margin-bottom: 15px; color: #4a5568;">🤖 AI Customer Sentiment</h4>
+        <div style="height: 250px;">
+            <canvas id="sentimentChart"></canvas>
+        </div>
     </div>
 </div>
 
@@ -63,7 +80,8 @@
                     </td>
 
                     <td style="padding: 15px 10px;">
-                        {% set status = order.status | lower %} {% if status == 'pending' or status == 'paid' %}
+                        {% set status = order.status | lower %} 
+                        {% if status == 'pending' or status == 'paid' %}
                             <span style="background: #fff3cd; color: #856404; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold;">
                                 {{ order.status }} </span>
                         {% elif status == 'shipping' %}
@@ -108,4 +126,69 @@
         </table>
     </div>
 </div>
+
+
+<script id="order-data" type="application/json">
+    {{ order_chart_data | tojson }}
+</script>
+
+<script id="sentiment-data" type="application/json">
+    {{ sentiment_chart_data | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // --- 1. LẤY DỮ LIỆU TỪ HTML (KHÔNG CÒN BỊ LỖI ĐỎ) ---
+        // Lấy text trong thẻ script -> Chuyển thành Mảng số
+        const orderDataRaw = document.getElementById('order-data').textContent;
+        const sentimentDataRaw = document.getElementById('sentiment-data').textContent;
+        
+        const orderData = JSON.parse(orderDataRaw);
+        const sentimentData = JSON.parse(sentimentDataRaw);
+
+        // --- 2. VẼ BIỂU ĐỒ TRÒN (ORDER STATUS) ---
+        const ctx1 = document.getElementById('orderStatusChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut', 
+            data: {
+                labels: ['Pending', 'Shipping', 'Delivered', 'Cancelled'],
+                datasets: [{
+                    data: orderData, // Dùng biến JS sạch sẽ
+                    backgroundColor: ['#f6e05e', '#63b3ed', '#68d391', '#fc8181'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // --- 3. VẼ BIỂU ĐỒ CỘT (AI SENTIMENT) ---
+        const ctx2 = document.getElementById('sentimentChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Positive 😊', 'Neutral 😐', 'Negative 😡'],
+                datasets: [{
+                    label: 'Reviews',
+                    data: sentimentData, // Dùng biến JS sạch sẽ
+                    backgroundColor: ['#48bb78', '#a0aec0', '#f56565'],
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    });
+</script>
+
 {% endblock %}

@@ -1,101 +1,155 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    {% if not search_query %}
+    {% if not search_query and not products %}
     <section class="hero-banner">
         <div class="hero-slides">
             <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1552346154-21d32810aba3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
             <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
-            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1460353581641-37baddab0fa2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');"></div>
         </div>
-        
         <div class="overlay"></div>
-
         <div class="hero-content">
-            {% if gender == 'men' %}
-                <h1>MEN'S SNEAKERS</h1>
-                <p>Exclusive drops for him</p>
-            {% elif gender == 'women' %}
-                <h1>WOMEN'S SNEAKERS</h1>
-                <p>Latest trends for her</p>
-            {% else %}
-                <h1>SNEAKER DROPS</h1>
-                <p>The latest heat from Nike, Adidas & New Balance</p>
-            {% endif %}
-            
-            <a href="#shop-here" class="shop-now-btn">SHOP NOW</a>
+            <h1>SNEAKER DROPS</h1>
+            <p>The latest heat from Nike, Adidas & New Balance</p>
+            <a href="#new-arrivals" class="shop-now-btn">SHOP NOW</a>
         </div>
     </section>
-    {% endif %}
+    
     <div class="ticker-container">
         <div class="ticker-wrapper">
-            {% for i in range(4) %} <div class="ticker-content">
-                SALE: FURTHER REDUCTIONS &nbsp; • &nbsp; UP TO 70% OFF &nbsp; • &nbsp; USE CODE: <strong>REFY20</strong> &nbsp; • &nbsp; FREE SHIPPING WORLDWIDE &nbsp; • &nbsp; 
+            {% for i in range(4) %} 
+            <div class="ticker-content">
+                SALE: FURTHER REDUCTIONS &nbsp; • &nbsp; UP TO 70% OFF &nbsp; • &nbsp; USE CODE: <strong>REFY20</strong> &nbsp; • &nbsp; 
             </div>
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 
     <div class="section-header" style="text-align: center; margin: 50px 0 30px;">
-        
         {% if search_query %}
-            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">
-                SEARCH RESULTS FOR "{{ search_query }}"
-            </h2>
-            <p style="color: #666; font-size: 14px;">Found {{ products|length }} products</p>
-            
-            {% if products|length == 0 %}
-                <div style="margin-top: 30px; padding: 20px; background: #f5f5f5; display: inline-block; border-radius: 8px;">
-                    <p style="margin-bottom: 15px; color: #333;">We couldn't find any matches for your keyword.</p>
-                    <a href="/" style="color: black; text-decoration: underline; font-weight: bold; font-size: 14px;">
-                        &larr; Return to Home Store
-                    </a>
-                </div>
-            {% endif %}
-
+            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase;">SEARCH RESULTS FOR "{{ search_query }}"</h2>
+            <p style="color: #666;">Found {{ products|length }} products</p>
         {% elif page_title %}
-            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
-                {{ page_title }}
-            </h2>
-
-        {% else %}
-            <h2 style="font-size: 28px; font-weight: 800; letter-spacing: 1px;">NEW ARRIVALS</h2>
-            <p style="color: #777; margin-top: 5px; font-style: italic;">Check out the latest heat</p>
+            <h2 style="font-size: 28px; font-weight: 800; text-transform: uppercase;">{{ page_title }}</h2>
         {% endif %}
-
     </div>
 
-    <section class="product-grid" id="shop-here">
+    {% if products %}
+    <section class="product-grid">
         {% for product in products %}
-        <div class="product-card">
-            <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
-                
-                <div class="image-container">
-                    {% set main_image = product.images[0] if product.images and product.images|length > 0 else (product.image if product.image else 'https://via.placeholder.com/300') %}
-                    <img src="{{ main_image }}" alt="{{ product.name }}">
-                    <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" 
-                            onclick="toggleWishlist(event, '{{ product._id }}')">
-                        {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
-                    </button> 
-                </div>
-
-                <div class="product-info">
-                    <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
-                    <p style="color: #666; font-size: 12px; text-transform: uppercase;">
-                        {{ product.category_name if product.category_name else 'Fashion' }}
-                    </p>
-                    <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
-                </div>
-
-            </a>
-        </div>
+            <div class="product-card">
+                <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="image-container">
+                        {% set main_image = product.images[0] if product.images and product.images|length > 0 else (product.image if product.image else 'https://via.placeholder.com/300') %}
+                        <img src="{{ main_image }}" alt="{{ product.name }}">
+                        <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" onclick="toggleWishlist(event, '{{ product._id }}')">
+                            {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                        </button> 
+                    </div>
+                    <div class="product-info">
+                        <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
+                        <p style="color: #666; font-size: 12px; text-transform: uppercase;">{{ product.category_name }}</p>
+                        <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                    </div>
+                </a>
+            </div>
         {% endfor %}
     </section>
+    
+    {% else %}
+        
+        <div class="section-header" id="new-arrivals" style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 28px; font-weight: 800;">🚀 NEW ARRIVALS</h2>
+            <p style="color: #777; font-style: italic;">Fresh from the lab</p>
+        </div>
+        
+        <section class="product-grid" style="margin-bottom: 80px;">
+            {% for product in new_arrivals %}
+            <div class="product-card">
+                <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="image-container">
+                        {% set main_image = product.images[0] if product.images else (product.image if product.image else 'https://via.placeholder.com/300') %}
+                        <img src="{{ main_image }}" alt="{{ product.name }}">
+                        <div style="position: absolute; top: 10px; left: 10px; background: black; color: white; padding: 2px 8px; font-size: 10px; font-weight: bold;">NEW</div>
+                        <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" 
+                                onclick="toggleWishlist(event, '{{ product._id }}')">
+                            {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
+                        <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </section>
 
-    <script>
-    // ==========================================
-    // 1. LOGIC SLIDER (GIỮ NGUYÊN)
-    // ==========================================
+        {% if recommendations %}
+        <div class="section-header" style="text-align: center; margin-bottom: 30px; background: #f8f9fa; padding: 20px 0;">
+            <h2 style="font-size: 28px; font-weight: 800;">✨ SUGGESTED FOR YOU</h2>
+            <p style="color: #777;">Based on your style & history</p>
+        </div>
+
+        <section class="product-grid" style="margin-bottom: 80px;">
+            {% for product in recommendations %}
+            <div class="product-card" style=" {% if product.get('match_score', 0) > 0.5 %}#4caf50{% else %}#eee{% endif %};">
+                <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="image-container">
+                        {% set main_image = product.images[0] if product.images else (product.image if product.image else 'https://via.placeholder.com/300') %}
+                        <img src="{{ main_image }}" alt="{{ product.name }}">
+                        
+                        {% if product.get('match_score') %}
+                        <div style="position: absolute; top: 10px; right: 10px; background: #2ecc71; color: white; padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            {{ "%.0f"|format(product.get('match_score', 0) * 100) }}% MATCH
+                        </div>
+                        {% endif %}
+                        <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" 
+                                onclick="toggleWishlist(event, '{{ product._id }}')">
+                            {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
+                        <p style="color: #666; font-size: 12px;">
+                            {% if product.reason %}
+                                <span style="color: #e91e63;">★ {{ product.reason }}</span>
+                            {% else %}
+                                {{ product.category_name }}
+                            {% endif %}
+                        </p>
+                        <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %} {% if explore_more %}
+        <div class="section-header" style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 28px; font-weight: 800;">🔥 EXPLORE MORE</h2>
+            <p style="color: #777;">More products from RefyShoe</p>
+        </div>
+        
+        <section class="product-grid" style="margin-bottom: 80px;"> 
+            {% for p in explore_more %}
+            <div class="product-card">
+                <a href="/product/{{ p._id }}" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="image-container">
+                        <img src="{{ p.images[0] if p.images else p.image }}" alt="{{ p.name }}">
+                    </div>
+                    <div class="product-info">
+                        <p class="product-name" style="font-weight: bold;">{{ p.name }}</p>
+                        <p style="color: #666; font-size: 12px; text-transform: uppercase;">{{ p.category_name }}</p>
+                        <p class="product-price">{{ "{:,.0f}".format(p.price) }} đ</p>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+    {% endif %} <script>
     const slides = document.querySelectorAll('.slide');
     if (slides.length > 0) {
         let currentSlide = 0;
@@ -106,6 +160,6 @@
         }
         setInterval(nextSlide, 5000);
     }
-</script>
+    </script>
 
 {% endblock %}

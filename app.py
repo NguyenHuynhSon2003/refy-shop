@@ -4,6 +4,8 @@ from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
 from authlib.integrations.flask_client import OAuth
+from textblob import TextBlob
+from recommender import get_recommendations, get_svd_recommendations
 import werkzeug.security
 import os
 import random
@@ -114,41 +116,119 @@ def logout():
 
 
 # --- 3. PUBLIC ROUTES ---
+# ==========================================
+# 1. ROUTE TRANG CHỦ (Chỉ xử lý '/')
+# ==========================================
 @app.route('/')
+def home():
+    # 1. Lấy dữ liệu Section 1: New Arrivals
+    new_arrivals = list(products_collection.find().sort('created_at', -1).limit(4))
+
+    # 2. Logic AI Hybrid (MIXING STRATEGY) cho Section 2
+    recommendations = []
+    user_id = session.get('user_id')
+    
+    if user_id:
+        # --- BƯỚC A: Lấy 4 sản phẩm từ SVD (Dựa trên Rating) ---
+        svd_items = get_svd_recommendations(
+            user_id=user_id, 
+            reviews_col=reviews_collection,
+            products_col=products_collection,
+            n_recommendations=4 # Lấy 4 món ngon nhất từ Rating
+        )
+        
+        # --- BƯỚC B: Lấy 4 sản phẩm từ TF-IDF (Dựa trên Cart/View) ---
+        # LUÔN GỌI hàm này để phản hồi hành động thêm giỏ hàng
+        tfidf_items = get_recommendations(
+            user_id=user_id,
+            products_col=products_collection,
+            interactions_col=interactions_collection,
+            limit=4 # Lấy 4 món ngon nhất từ hành vi xem/giỏ
+        )
+        
+        # --- BƯỚC C: Trộn và Lọc trùng ---
+        # Ưu tiên SVD hiển thị trước, TF-IDF hiển thị sau
+        combined_list = svd_items + tfidf_items
+        
+        seen_ids = set()
+        for item in combined_list:
+            pid = str(item['_id'])
+            if pid not in seen_ids:
+                recommendations.append(item)
+                seen_ids.add(pid)
+        
+        # --- BƯỚC D: Fallback cuối cùng (Nếu cả 2 thuật toán đều ít hàng) ---
+        # Lấp đầy cho đủ 8 món bằng sản phẩm mới nhất
+        if len(recommendations) < 8:
+            needed = 8 - len(recommendations)
+            extras = list(products_collection.find().sort('created_at', -1).limit(20)) # Lấy dư ra để lọc
+            
+            for item in extras:
+                if len(recommendations) >= 8: break
+                if str(item['_id']) not in seen_ids:
+                    recommendations.append(item)
+                    seen_ids.add(str(item['_id']))
+
+    else:
+        # Khách vãng lai: Lấy sản phẩm mới tiếp theo
+        recommendations = list(products_collection.find().sort('created_at', -1).skip(4).limit(8))
+
+    # 3. Lấy Wishlist
+    user_wishlist = []
+    if 'user_id' in session:
+        wishlist_data = wishlists_collection.find({'user_id': session['user_id']}, {'product_id': 1})
+        user_wishlist = [str(item['product_id']) for item in wishlist_data]
+    
+    # --- 4. THÊM MỚI CHỖ NÀY: LẤY THÊM SẢN PHẨM KHÁC ---
+    # Lấy thêm 20 sản phẩm nữa từ database (skip 4 cái đầu vì đã nằm ở New Arrivals)
+    extra_products = list(products_collection.find().sort('created_at', -1).skip(4).limit(20))
+
+    # TRẢ VỀ: Truyền products=[] để template KHÔNG hiện lưới sản phẩm danh mục
+    return render_template('index.html', 
+                           new_arrivals=new_arrivals, 
+                           recommendations=recommendations,
+                           explore_more=extra_products, 
+                           user_wishlist=user_wishlist,
+                           current_path='/', 
+                           products=[])
+
+# ==========================================
+# 2. ROUTE DANH MỤC (Men / Women / Unisex)
+# ==========================================
 @app.route('/men')
 @app.route('/women')
 @app.route('/unisex')
-def home():
+def category():
     current_path = request.path
-    products = []
     
-    # A. Nếu đang lọc cứng theo Menu (Men/Women) -> Giữ nguyên logic lọc
-    if current_path in ['/men', '/women', '/unisex']:
-        query = {}
-        gender_map = {
-            '/men': ['men', 'unisex'],
-            '/women': ['women', 'unisex'],
-            '/unisex': ['unisex']
-        }
-        target_genders = gender_map.get(current_path)
-        if target_genders:
-            query = {"attributes.gender": {"$in": target_genders}}
-        
-        products = list(products_collection.find(query).sort('created_at', -1))
-        
-    # B. Nếu ở Trang Chủ ('/') -> Dùng AI Gợi ý (Onboarding)
-    else:
-        user_id = session.get('user_id')
-        # Gọi hàm AI mới, không truyền current_product, chỉ truyền user_id
-        products = get_recommendations(current_product=None, user_id=user_id, limit=12)
+    # 1. Logic lọc sản phẩm theo giới tính
+    query = {}
+    gender_map = {
+        '/men': ['men', 'unisex'],
+        '/women': ['women', 'unisex'],
+        '/unisex': ['unisex']
+    }
+    
+    target_genders = gender_map.get(current_path)
+    if target_genders:
+        query = {"attributes.gender": {"$in": target_genders}}
+    
+    # Lấy danh sách sản phẩm
+    products = list(products_collection.find(query).sort('created_at', -1))
 
-    # Wishlist logic (Giữ nguyên)
+    # 2. Lấy Wishlist
     user_wishlist = []
     if 'user_id' in session:
         wishlist_data = wishlists_collection.find({'user_id': session['user_id']}, {'product_id': 1})
         user_wishlist = [str(item['product_id']) for item in wishlist_data]
 
-    return render_template('index.html', products=products, user_wishlist=user_wishlist)
+    # TRẢ VỀ: Có biến 'products' -> Template sẽ tự hiểu là trang danh mục
+    return render_template('index.html', 
+                           products=products, 
+                           user_wishlist=user_wishlist,
+                           current_path=current_path,
+                           new_arrivals=[], # Không cần hiện section này ở trang danh mục
+                           recommendations=[]) # Không cần hiện section này ở trang danh mục
 
 # --- 4. CHI TIẾT SẢN PHẨM (ĐÃ NÂNG CẤP GỌI AI MODULE) ---
 
@@ -190,7 +270,8 @@ def product_detail(product_id):
     track_and_learn(current_user, p_id, action="view")
     
     # Lấy danh sách gợi ý (Recommendation)
-    recommendations = get_recommendations(product, current_user)
+    # recommendations = get_recommendations(product, current_user)
+    recommendations = get_recommendations(current_product=product, user_id=current_user, limit=4)
 
     # --- PHẦN 3: TÍNH NĂNG REVIEW  ---
     # 3.1. Lấy danh sách đánh giá từ DB (Mới nhất lên đầu)
@@ -202,12 +283,18 @@ def product_detail(product_id):
         # Gọi hàm check_can_review đã viết ở các bước trước
         can_review = check_can_review(session['user_id'], product_id)
 
+    user_wishlist = []
+    if 'user_id' in session:
+        wishlist_data = wishlists_collection.find({'user_id': session['user_id']}, {'product_id': 1})
+        user_wishlist = [str(item['product_id']) for item in wishlist_data]
+
     # --- RETURN TEMPLATE ---
     return render_template('product_detail.html', 
                            product=product, 
                            recommendations=recommendations, # Dữ liệu AI
                            reviews=reviews,                 # Dữ liệu Review
-                           can_review=can_review)           # Biến kiểm tra quyền
+                           can_review=can_review,
+                           user_wishlist=user_wishlist)           # Biến kiểm tra quyền
 
 # --- ROUTE XỬ LÝ GỬI REVIEW (Dán vào app.py) ---
 @app.route('/submit-review/<product_id>', methods=['POST'])
@@ -237,40 +324,140 @@ def submit_review(product_id):
     return redirect(url_for('product_detail', product_id=product_id))
 
 
+# # --- 5. CART ROUTES ---
+# @app.route('/add-to-cart/<product_id>', methods=['POST'])
+# def add_to_cart(product_id):
+#     if 'user_id' not in session: 
+#         # Tiếng Anh: Login required
+#         flash("Please login to add items to your cart!", "warning")
+#         return redirect(url_for('login'))
+
+#     user_id = session['user_id']
+
+#     p_id = ObjectId(product_id)
+#     quantity = int(request.form.get('quantity', 1))
+#     size = request.form.get('size')
+
+#     # check trong gio hang hien tai cua khach, co p_id va size nay chua
+    
+    
+#     product = products_collection.find_one({'_id': p_id})
+#     main_image = product['images'][0] if product.get('images') else product.get('image', '')
+
+
+#     # => i -> tim ra so luong hien tai trong gio
+#     db['carts'].update_one(
+#         {'user_id': user_id},
+#         {'$push': {'items': {
+#             # 'cart_detail_id': i+1
+#             'product_id': p_id, 
+#             'name': product['name'], 
+#             'price': product['price'], 
+#             'image': main_image,
+#             'size': size, 
+#             'quantity': quantity
+#         }}},
+#         upsert=True
+#     )
+
+#     # Tracking AI
+#     track_and_learn(user_id, p_id, action="add_to_cart")
+
+#     # Tiếng Anh: Success
+#     flash("Product added to cart successfully!", "success") 
+#     return redirect(url_for('view_cart'))
+
 # --- 5. CART ROUTES ---
 @app.route('/add-to-cart/<product_id>', methods=['POST'])
 def add_to_cart(product_id):
     if 'user_id' not in session: 
-        # Tiếng Anh: Login required
         flash("Please login to add items to your cart!", "warning")
         return redirect(url_for('login'))
 
     user_id = session['user_id']
     p_id = ObjectId(product_id)
-    quantity = int(request.form.get('quantity', 1))
-    size = request.form.get('size')
     
+    # 1. Get quantity from form and convert to int
+    try:
+        quantity_to_add = int(request.form.get('quantity', 1))
+    except:
+        quantity_to_add = 1
+        
+    size_selected = request.form.get('size')
+
+    # 2. Get product details from DB
     product = products_collection.find_one({'_id': p_id})
-    main_image = product['images'][0] if product.get('images') else product.get('image', '')
+    if not product:
+        flash("Product not found!", "danger")
+        return redirect(request.referrer)
+
+    # 3. CHECK STOCK IN DB (sizes_stock array)
+    available_stock = 0
+    if 'sizes_stock' in product:
+        for s in product['sizes_stock']:
+            # Compare size as string to be safe
+            if str(s['size']) == str(size_selected): 
+                available_stock = int(s['quantity'])
+                break
+    else:
+        # Fallback to general stock if sizes_stock is missing
+        available_stock = int(product.get('stock', 0))
+
+    # 4. CHECK QUANTITY ALREADY IN CART
+    current_in_cart = 0
+    user_cart = db['carts'].find_one({'user_id': user_id})
     
-    db['carts'].update_one(
-        {'user_id': user_id},
-        {'$push': {'items': {
+    if user_cart and 'items' in user_cart:
+        for item in user_cart['items']:
+            # Check if same product ID and same Size
+            if str(item['product_id']) == str(p_id) and str(item.get('size')) == str(size_selected):
+                current_in_cart = int(item.get('quantity', 0))
+                break
+
+    # 5. BLOCK IF EXCEEDS AVAILABLE STOCK
+    if (current_in_cart + quantity_to_add) > available_stock:
+        flash(f"Insufficient stock! Size {size_selected} only has {available_stock} left. (You already have {current_in_cart} in cart)", "danger")
+        return redirect(request.referrer)
+
+    # 6. EVERYTHING OK -> PROCEED TO UPDATE OR PUSH
+    main_image = product['images'][0] if product.get('images') else product.get('image', '')
+
+    # Check if this specific item (ID + Size) exists in cart
+    item_exists = db['carts'].find_one({
+        'user_id': user_id, 
+        'items': {'$elemMatch': {'product_id': p_id, 'size': size_selected}}
+    })
+
+    if item_exists:
+        # Already exists -> Increment quantity
+        db['carts'].update_one(
+            {'user_id': user_id, 'items.product_id': p_id, 'items.size': size_selected},
+            {'$inc': {'items.$.quantity': quantity_to_add}}
+        )
+    else:
+        # New item -> Push to items array
+        new_item = {
             'product_id': p_id, 
             'name': product['name'], 
             'price': product['price'], 
             'image': main_image,
-            'size': size, 
-            'quantity': quantity
-        }}},
-        upsert=True
-    )
+            'size': size_selected, 
+            'quantity': quantity_to_add
+        }
+        db['carts'].update_one(
+            {'user_id': user_id},
+            {'$push': {'items': new_item}},
+            upsert=True
+        )
 
-    # Tracking AI
-    track_and_learn(user_id, p_id, action="add_to_cart")
+    # 7. AI Tracking (Optional)
+    try:
+        from recommender import track_and_learn
+        track_and_learn(user_id, p_id, action="add_to_cart")
+    except:
+        pass
 
-    # Tiếng Anh: Success
-    flash("Product added to cart successfully!", "success") 
+    flash("Added to cart successfully!", "success")
     return redirect(url_for('view_cart'))
 
 @app.route('/cart')
@@ -353,35 +540,88 @@ def admin_dashboard():
     if not is_admin(): 
         flash(f"Access Denied", "warning")
         return redirect(url_for('home'))
+    
+    # --- PHẦN 1: THỐNG KÊ TỔNG QUAN (STATS & CHARTS) ---
     stats = {
         'total_products': products_collection.count_documents({}),
         'total_users': users_collection.count_documents({}),
+        'total_orders': orders_collection.count_documents({}),
         'categories': categories_collection.count_documents({})
     }
+
+    # 1.1. Tính tổng doanh thu
+    pipeline = [
+        {'$match': {'status': {'$ne': 'Cancelled'}}},
+        {'$group': {'_id': None, 'total': {'$sum': '$total_price'}}}
+    ]
+    revenue_data = list(orders_collection.aggregate(pipeline))
+    stats['revenue'] = revenue_data[0]['total'] if revenue_data else 0
+
+    # 1.2. Dữ liệu cho biểu đồ tròn (Order Status)
+    order_status_data = list(orders_collection.aggregate([
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]))
+    status_counts = {item['_id']: item['count'] for item in order_status_data}
+    
+    order_chart_data = [
+        status_counts.get('Pending', 0) + status_counts.get('Paid', 0),
+        status_counts.get('shipping', 0) + status_counts.get('Shipping', 0),
+        status_counts.get('delivered', 0) + status_counts.get('Delivered', 0),
+        status_counts.get('cancelled', 0) + status_counts.get('Cancelled', 0)
+    ]
+
+    # [ĐÃ SỬA] 1.3. AI Phân tích cảm xúc (Di chuyển lên trên)
+    all_reviews = list(reviews_collection.find())
+    sentiment_stats = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
+    
+    for review in all_reviews:
+        comment = review.get('comment', '')
+        if comment:
+            analysis = TextBlob(comment)
+            score = analysis.sentiment.polarity
+            
+            if score > 0.1: sentiment_stats['Positive'] += 1
+            elif score < -0.1: sentiment_stats['Negative'] += 1
+            else: sentiment_stats['Neutral'] += 1
+
+    # [ĐÃ SỬA] Sau khi tính xong sentiment_stats mới tạo list dữ liệu này
+    sentiment_chart_data = [
+        sentiment_stats['Positive'],
+        sentiment_stats['Neutral'],
+        sentiment_stats['Negative']
+    ]
+
+    # --- PHẦN 2: QUẢN LÝ CHI TIẾT ---
+    
+    # 2.1. Xử lý danh sách đơn hàng gần đây
     recent_orders = list(orders_collection.find().sort('created_at', -1).limit(20))
     for order in recent_orders:
         user_id_raw = order.get('user_id')
-        
-        # 1. Chuyển đổi String -> ObjectId để tìm trong bảng Users
+        user_info = None
         try:
-            # Nếu nó là chuỗi thì ép kiểu sang ObjectId, nếu không thì giữ nguyên
-            if isinstance(user_id_raw, str):
-                query_id = ObjectId(user_id_raw)
-            else:
-                query_id = user_id_raw
-                
-            user_info = users_collection.find_one({'_id': query_id})
-        except:
-            user_info = None
+            if user_id_raw:
+                query_id = ObjectId(user_id_raw) if isinstance(user_id_raw, str) else user_id_raw
+                user_info = users_collection.find_one({'_id': query_id})
+        except: pass
 
-        # 2. Gán dữ liệu vào đơn hàng để hiển thị
         if user_info:
             order['customer_email'] = user_info.get('email')
             order['customer_name'] = user_info.get('full_name', user_info.get('name'))
         else:
             order['customer_email'] = 'Khách vãng lai / Đã xóa'
+            order['customer_name'] = 'Unknown'
+
+    # 2.2. Lấy danh sách users
     users = list(users_collection.find().sort('created_at', -1))
-    return render_template('admin/dashboard.html', stats=stats, orders=recent_orders, users=users, page='dashboard')
+
+    # --- RETURN TEMPLATE ---
+    return render_template('admin/dashboard.html', 
+                           stats=stats, 
+                           orders=recent_orders, 
+                           users=users, 
+                           order_chart_data=order_chart_data, 
+                           sentiment_chart_data=sentiment_chart_data,
+                           page='dashboard')
 
 # --- ROUTE XÓA USER ---
 @app.route('/admin/delete_user/<user_id>')
@@ -418,36 +658,60 @@ def admin_products():
         images_list = [img for img in [img1, img2, img3] if img and img.strip() != '']
         if not images_list: images_list = ["https://via.placeholder.com/300"]
 
-        # [FIX] Lấy thông tin Category (Giả sử form gửi về category_name)
+        # Lấy thông tin Category
         cat_name = request.form.get('category')
         cat_obj = categories_collection.find_one({'name': cat_name})
         cat_id = cat_obj['_id'] if cat_obj else None
 
-        # [FIX QUAN TRỌNG] Tạo cấu trúc Attributes để khớp với DB mới
+        # ==========================================================
+        # LOGIC MỚI: TÍNH TỒN KHO THEO SIZE TỪ FORM GỬI LÊN
+        # ==========================================================
+        size_names = request.form.getlist('size_name[]')
+        size_qtys = request.form.getlist('size_qty[]')
+        
+        sizes_stock = []
+        total_stock = 0
+        
+        for s_name, s_qty in zip(size_names, size_qtys):
+            try:
+                qty = int(s_qty)
+            except ValueError:
+                qty = 0
+                
+            sizes_stock.append({
+                "size": s_name,
+                "quantity": qty
+            })
+            total_stock += qty # Cộng dồn để lấy tổng kho
+        # ==========================================================
+
+        # Tạo cấu trúc Product để khớp với DB mới
         new_product = {
             "name": request.form.get('name'),
             "price": float(request.form.get('price')),
-            "stock": int(request.form.get('stock', 10)),
             
-            # Cấu trúc mới: Lưu cả ID và Name
+            # --- CẬP NHẬT TỒN KHO MỚI Ở ĐÂY ---
+            "stock": total_stock,         # Số tổng tự động tính
+            "sizes_stock": sizes_stock,   # Mảng chi tiết từng size
+            # ----------------------------------
+            
             "category_id": cat_id, 
             "category_name": cat_name,
             
-            # Cấu trúc mới: attributes lồng nhau
             "attributes": {
                 "brand": request.form.get('brand'),
-                "gender": request.form.get('gender'), # men, women, unisex
-                "material": "Standard" # Mặc định hoặc thêm ô nhập liệu nếu cần
+                "gender": request.form.get('gender'),
+                "material": "Standard" 
             },
             
-            "descriptions": request.form.get('description'), # Lưu vào descriptions (số nhiều) cho chuẩn init_db_v2
+            "descriptions": request.form.get('description'), 
             "images": images_list,
-            "tags": [cat_name.lower(), request.form.get('brand').lower()],
+            "tags": [cat_name.lower() if cat_name else "", request.form.get('brand', '').lower()],
             "created_at": datetime.now()
         }
 
         products_collection.insert_one(new_product)
-        flash("New product created successfully (Standard Format)!", "success")
+        flash("New product created successfully with Size Inventory!", "success")
         return redirect('/admin/products')
     
     products = list(products_collection.find().sort('created_at', -1))
@@ -465,11 +729,39 @@ def edit_product(product_id):
         if not img1: img1 = request.form.get('image')
         images_list = [img for img in [img1, img2, img3] if img and img.strip() != '']
         
-        # [FIX] Cập nhật theo cấu trúc lồng nhau
+        # ==========================================================
+        # LOGIC MỚI: XỬ LÝ TỒN KHO THEO SIZE TỪ FORM GỬI LÊN
+        # ==========================================================
+        size_names = request.form.getlist('size_name[]') # Lấy danh sách tên size
+        size_qtys = request.form.getlist('size_qty[]')   # Lấy danh sách số lượng
+        
+        sizes_stock = []
+        total_stock = 0
+        
+        # Dùng zip() để ghép cặp (Size 38 - 10 đôi), (Size 39 - 5 đôi)...
+        for s_name, s_qty in zip(size_names, size_qtys):
+            try:
+                qty = int(s_qty)
+            except ValueError:
+                qty = 0 # Tránh lỗi nếu lỡ nhập chữ
+                
+            sizes_stock.append({
+                "size": s_name,
+                "quantity": qty
+            })
+            total_stock += qty # Cộng dồn để tính tổng kho
+        # ==========================================================
+        
+        # Cập nhật theo cấu trúc lồng nhau
         updated_data = {
             "name": request.form.get('name'),
             "price": float(request.form.get('price')),
-            "stock": int(request.form.get('stock')),
+            
+            # --- UPDATE VÀO DATABASE ---
+            "stock": total_stock,         # Cập nhật số tổng mới tính được
+            "sizes_stock": sizes_stock,   # Lưu mảng size chi tiết vào DB
+            # ---------------------------
+            
             "descriptions": request.form.get('description'),
             
             # Cập nhật attributes
@@ -579,41 +871,59 @@ def update_order_status(order_id, new_status):
 def checkout():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    # [QUAN TRỌNG] Lấy thông tin đầy đủ của User từ DB để điền vào Form
     current_user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
-    
     user_cart = db['carts'].find_one({'user_id': session['user_id']})
     
-    # Kiểm tra giỏ hàng rỗng (chỉ check khi không phải là POST thanh toán)
     if request.method == 'GET' and (not user_cart or not user_cart.get('items')):
-        # Nếu session đang lưu hàng checkout thì không sao, còn không thì báo rỗng
         if not session.get('checkout_items'):
             flash("Your cart is empty!", "warning")
             return redirect(url_for('view_cart'))
     
     # --- TRƯỜNG HỢP 1: POST TỪ GIỎ HÀNG (Người dùng vừa bấm Checkout) ---
+    # --- TRƯỜNG HỢP 1: POST TỪ GIỎ HÀNG (Người dùng vừa bấm Checkout) ---
     if request.method == 'POST' and request.form.get('from_cart') == 'true':
-        selected_ids = request.form.getlist('selected_items') 
+        # Bây giờ selected_keys sẽ chứa chuỗi dạng "ID_Size"
+        selected_keys = request.form.getlist('selected_items') 
         
-        if not selected_ids:
+        if not selected_keys:
             flash("Please select at least one item to checkout.", "warning")
             return redirect(url_for('view_cart'))
             
         checkout_items = []
+        out_of_stock_errors = [] 
+        
         if user_cart:
             for item in user_cart['items']:
-                if str(item['product_id']) in selected_ids:
-                    # Tạo bản sao và chuyển ObjectId thành String để lưu Session
+                # TẠO KEY DUY NHẤT CHO MỖI DÒNG SẢN PHẨM (ID + SIZE)
+                current_item_key = f"{item['product_id']}_{item['size']}"
+                
+                # CHỈ XỬ LÝ NẾU KEY NÀY NẰM TRONG DANH SÁCH ĐƯỢC CHỌN
+                if current_item_key in selected_keys:
+                    
+                    # === GIỮ NGUYÊN BƯỚC VALIDATE TỒN KHO ===
+                    product_in_db = products_collection.find_one({'_id': ObjectId(item['product_id'])})
+                    
+                    if product_in_db and 'sizes_stock' in product_in_db:
+                        size_info = next((s for s in product_in_db['sizes_stock'] if s['size'] == item['size']), None)
+                        
+                        if not size_info or size_info['quantity'] < item['quantity']:
+                            available = size_info['quantity'] if size_info else 0
+                            out_of_stock_errors.append(f"{item['name']} (Size {item['size']}) - Only {available} left")
+                    
+                    # Copy món hàng vào danh sách thanh toán
                     item_copy = item.copy()
                     item_copy['product_id'] = str(item['product_id']) 
                     checkout_items.append(item_copy)
         
-        # Lưu vào Session
+        # Kiểm tra lỗi kho như cũ
+        if out_of_stock_errors:
+            error_msg = "Sorry, insufficient stock for: " + " | ".join(out_of_stock_errors)
+            flash(error_msg, "danger")
+            return redirect(url_for('view_cart'))
+        
+        # Lưu vào Session và chuyển sang trang checkout
         session['checkout_items'] = checkout_items
-        
         total_price = sum(item['price'] * item['quantity'] for item in checkout_items)
-        
-        # [FIX] Truyền biến 'user' chứa object đầy đủ vào template
         return render_template('checkout.html', items=checkout_items, total=total_price, user=current_user)
 
     # --- TRƯỜNG HỢP 2: POST TỪ TRANG CHECKOUT (Người dùng điền form ship) ---
@@ -642,8 +952,6 @@ def checkout():
         if not items: return redirect(url_for('view_cart'))
         
         total_price = sum(item['price'] * item['quantity'] for item in items)
-        
-        # [FIX] Truyền biến 'user' vào template
         return render_template('checkout.html', items=items, total=total_price, user=current_user)
 
 
@@ -726,6 +1034,39 @@ def search():
 
     return render_template('index.html', products=products, search_query=query, page_title="Search Results")
 
+# --- ROUTE: HỦY ĐƠN HÀNG (USER TỰ HỦY) ---
+@app.route('/cancel-order/<order_id>', methods=['POST'])
+def cancel_order(order_id):
+    # 1. Kiểm tra đăng nhập
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        # 2. Tìm đơn hàng (Phải khớp ID đơn hàng VÀ ID người dùng để bảo mật)
+        order = orders_collection.find_one({
+            '_id': ObjectId(order_id),
+            'user_id': session['user_id']
+        })
+
+        if not order:
+            flash("Order not found or access denied.", "error")
+            return redirect(url_for('profile'))
+
+        # 3. [QUAN TRỌNG] Chỉ cho hủy nếu trạng thái là 'Pending'
+        if order.get('status') == 'Pending':
+            orders_collection.update_one(
+                {'_id': ObjectId(order_id)},
+                {'$set': {'status': 'Cancelled'}}
+            )
+            flash("Order cancelled successfully.", "success")
+        else:
+            flash("Cannot cancel this order! It might be shipped or processed.", "warning")
+            
+    except Exception as e:
+        flash("Something went wrong. Please try again.", "error")
+
+    # Quay lại trang hồ sơ
+    return redirect(url_for('profile'))
 
 # --- 10. ROUTE INIT DỮ LIỆU GIẢ LẬP (INTERACTIONS) ---
 @app.route('/init-interactions')
@@ -882,7 +1223,7 @@ def onboarding():
         
         # Sau khi lưu xong, về trang chủ
         flash("AI has curated a personalized feed just for you!", "success")
-        return redirect(url_for('home'))
+        return redirect('/')
 
     return render_template('onboarding.html')
 

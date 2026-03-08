@@ -1,12 +1,15 @@
 {% extends 'admin/layout.html' %}
 
 {% block admin_content %}
-<div class="header">
+<div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h2>Product Management</h2>
+    <button id="toggleAddFormBtn" type="button" style="background-color: #6b46c1; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s;">
+        ➕ Add New Product
+    </button>
 </div>
 
-<div class="form-card">
-    <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+<div id="addProductContainer" class="form-card" style="display: none; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px;">
+    <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; color: #2d3748;">
         Add New Product
     </h3>
     
@@ -31,21 +34,17 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group" style="margin: 20px 0; width: 200%;">
-                        <label style="font-weight: bold; margin-bottom: 10px; display: block;">Product Description</label>
-                        <textarea id="description" name="description" placeholder="Write something amazing..."></textarea>
-                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block;">Product Description</label>
+                    <textarea id="description" name="description" placeholder="Write something amazing..." rows="4" style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px;"></textarea>
                 </div>
             </div>
 
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 15px;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 15px; height: fit-content;">
                 <div class="form-group">
                     <label>Price (VND)</label>
-                    <input type="number" name="price" required style="color: #2da44e; font-weight: bold;">
-                </div>
-                <div class="form-group">
-                    <label>Stock Quantity</label>
-                    <input type="number" name="stock" value="10" required>
+                    <input type="number" name="price" required style="color: #2da44e; font-weight: bold; font-size: 16px;">
                 </div>
                 <div class="form-group">
                     <label>Gender</label>
@@ -58,33 +57,43 @@
             </div>
         </div>
 
-        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+        <div style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 20px 0; margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 15px; font-weight: bold; color: #2d3748;">📦 Inventory Management (By Size)</label>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px;">
+                {% for s in ['38', '39', '40', '41', '42'] %}
+                <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                    <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Size {{ s }}</label>
+                    <input type="hidden" name="size_name[]" value="{{ s }}">
+                    <input type="number" name="size_qty[]" value="0" min="0" required style="width: 100%; text-align: center; border: 1px solid #cbd5e0; border-radius: 4px; padding: 5px;">
+                </div>
+                {% endfor %}
+            </div>
+            <small style="color: #718096; display: block; margin-top: 10px;">* Total stock will be automatically calculated.</small>
+        </div>
+
+        <div>
             <label style="display: block; margin-bottom: 10px; font-weight: bold;">Product Images (Paste URL)</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                
                 <div class="form-group">
                     <label style="font-size: 12px; color: #666;">Main Image (Cover)</label>
                     <input type="text" name="image1" placeholder="http://..." required>
                 </div>
-
                 <div class="form-group">
                     <label style="font-size: 12px; color: #666;">Side View</label>
                     <input type="text" name="image2" placeholder="http://...">
                 </div>
-
                 <div class="form-group">
                     <label style="font-size: 12px; color: #666;">On Feet / Detail</label>
                     <input type="text" name="image3" placeholder="http://...">
                 </div>
-
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="margin-top: 20px; width: 100%; padding: 12px;">+ Add Product Now</button>
+        <button type="submit" class="btn btn-primary" style="margin-top: 25px; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background: #3182ce; border: none;">+ Add Product Now</button>
     </form>
 </div>
 
-<div style="margin-top: 40px;">
+<div style="margin-top: 20px;">
     <h3>Product List</h3>
     <table>
         <thead>
@@ -107,15 +116,32 @@
                     {% endif %}
                 </td>
                 <td><b>{{ p.name }}</b><br><small style="color:#718096">{{ p.category_name}}</small></td>
-                <td><span style="background: #edf2f7; padding: 2px 6px; border-radius: 4px; font-size: 12px;">{{ p.stock }}</span></td>
+                <td><span style="background: #edf2f7; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold;">{{ p.stock }}</span></td>
                 <td>{{ "{:,.0f}".format(p.price) }} đ</td>
                 <td>
-                    <a href="/admin/products/edit/{{ p._id }}" class="btn btn-primary" style="font-size: 12px; padding: 5px 10px;">Edit</a>
-                    <a href="/admin/products/delete/{{ p._id }}" class="btn btn-danger" style="font-size: 12px; padding: 5px 10px;" onclick="return confirm('Delete?')">Delete</a>
+                    <a href="/admin/products/edit/{{ p._id }}" class="btn btn-primary" style="font-size: 12px; padding: 5px 10px; margin-right: 5px;">Edit</a>
+                    <a href="/admin/products/delete/{{ p._id }}" class="btn btn-danger" style="font-size: 12px; padding: 5px 10px; background: #e53e3e;" onclick="return confirm('Delete this product?')">Delete</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+    const toggleBtn = document.getElementById('toggleAddFormBtn');
+    const formContainer = document.getElementById('addProductContainer');
+
+    toggleBtn.addEventListener('click', function() {
+        if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+            formContainer.style.display = 'block';
+            toggleBtn.innerHTML = '✖ Cancel Form';
+            toggleBtn.style.backgroundColor = '#e53e3e'; 
+        } else {
+            formContainer.style.display = 'none';
+            toggleBtn.innerHTML = '➕ Add New Product';
+            toggleBtn.style.backgroundColor = '#6b46c1'; 
+        }
+    });
+</script>
 {% endblock %}

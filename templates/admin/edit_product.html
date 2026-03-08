@@ -20,49 +20,74 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="form-group">
                         <label>Brand</label>
-                        <input type="text" name="brand" value="{{ product.brand }}" required>
+                        <input type="text" name="brand" value="{{ product.attributes.brand if product.attributes else '' }}" required>
                     </div>
                     <div class="form-group">
                         <label>Category</label>
                         <select name="category">
                             {% for cat in categories %}
-                                <option value="{{ cat.name }}" {% if product.category == cat.name %}selected{% endif %}>
+                                <option value="{{ cat.name }}" {% if product.category_name == cat.name %}selected{% endif %}>
                                     {{ cat.name }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group" style="margin: 30px 0;">
-                        <label style="font-weight: bold; margin-bottom: 10px; display: block;">Product Description</label>
-                        <textarea id="description" name="description">
-                            {{ product.description if product.description else '' }}
-                        </textarea>
-                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block;">Product Description</label>
+                    <textarea id="description" name="description" rows="4" style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px;">{{ product.description if product.description else '' }}</textarea>
                 </div>
             </div>
 
-            <div style="background: #f7fafc; padding: 20px; border-radius: 8px;">
+            <div style="background: #f7fafc; padding: 20px; border-radius: 8px; height: fit-content;">
                 <div class="form-group">
                     <label>Price (VND)</label>
                     <input type="number" name="price" value="{{ product.price }}" required style="font-weight: bold; color: #2b6cb0;">
                 </div>
-                <div class="form-group" style="margin-top: 15px;">
-                    <label>Stock</label>
-                    <input type="number" name="stock" value="{{ product.stock }}" required>
-                </div>
-                <div class="form-group" style="margin-top: 15px;">
+                
+                <div class="form-group" style="margin-top: 20px;">
                     <label>Gender</label>
                     <select name="gender">
-                        <option value="men" {% if product.gender == 'men' %}selected{% endif %}>Men</option>
-                        <option value="women" {% if product.gender == 'women' %}selected{% endif %}>Women</option>
-                        <option value="unisex" {% if product.gender == 'unisex' %}selected{% endif %}>Unisex</option>
+                        <option value="men" {% if product.attributes and product.attributes.gender == 'men' %}selected{% endif %}>Men</option>
+                        <option value="women" {% if product.attributes and product.attributes.gender == 'women' %}selected{% endif %}>Women</option>
+                        <option value="unisex" {% if product.attributes and product.attributes.gender == 'unisex' %}selected{% endif %}>Unisex</option>
                     </select>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #ebf8ff; border-radius: 6px; border: 1px solid #bee3f8;">
+                    <span style="font-size: 12px; color: #2b6cb0;">ℹ️ Total stock is now managed automatically based on the sizes below.</span>
                 </div>
             </div>
         </div>
 
+        <div style="border-top: 2px dashed #cbd5e0; padding-top: 25px; margin-bottom: 30px;">
+            <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 16px; color: #4a5568;">📦 Inventory Management (By Size)</h3>
+            <p style="font-size: 13px; color: #718096; margin-bottom: 20px;">Enter the quantity available for each shoe size.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px;">
+                {% if product.sizes_stock %}
+                    {% for item in product.sizes_stock %}
+                    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <label style="font-size: 14px; font-weight: bold; color: #2d3748; display: block; margin-bottom: 10px;">Size {{ item.size }}</label>
+                        <input type="hidden" name="size_name[]" value="{{ item.size }}">
+                        <input type="number" name="size_qty[]" value="{{ item.quantity }}" min="0" required style="width: 100%; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #cbd5e0; border-radius: 4px; padding: 8px;">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    {% for s in ['38', '39', '40', '41', '42'] %}
+                    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <label style="font-size: 14px; font-weight: bold; color: #2d3748; display: block; margin-bottom: 10px;">Size {{ s }}</label>
+                        <input type="hidden" name="size_name[]" value="{{ s }}">
+                        <input type="number" name="size_qty[]" value="0" min="0" required style="width: 100%; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #cbd5e0; border-radius: 4px; padding: 8px;">
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
         <div style="border-top: 2px dashed #cbd5e0; padding-top: 25px;">
-            <h3 style="margin-top: 0; font-size: 16px; color: #4a5568;">Gallery Management</h3>
+            <h3 style="margin-top: 0; font-size: 16px; color: #4a5568;">🖼️ Gallery Management</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                 
@@ -75,7 +100,7 @@
                             <div style="display:flex; align-items:center; justify-content:center; height:100%; color:#999;">No Image</div>
                         {% endif %}
                     </div>
-                    <input type="text" name="image1" value="{{ product.images[0] if product.images and product.images|length >= 1 else '' }}" placeholder="URL..." style="font-size: 12px;">
+                    <input type="text" name="image1" value="{{ product.images[0] if product.images and product.images|length >= 1 else '' }}" placeholder="URL..." style="font-size: 12px; width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
                 </div>
 
                 <div class="image-box">
@@ -87,7 +112,7 @@
                             <div style="display:flex; align-items:center; justify-content:center; height:100%; color:#999;">Empty</div>
                         {% endif %}
                     </div>
-                    <input type="text" name="image2" value="{{ product.images[1] if product.images and product.images|length >= 2 else '' }}" placeholder="URL..." style="font-size: 12px;">
+                    <input type="text" name="image2" value="{{ product.images[1] if product.images and product.images|length >= 2 else '' }}" placeholder="URL..." style="font-size: 12px; width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
                 </div>
 
                 <div class="image-box">
@@ -99,14 +124,14 @@
                             <div style="display:flex; align-items:center; justify-content:center; height:100%; color:#999;">Empty</div>
                         {% endif %}
                     </div>
-                    <input type="text" name="image3" value="{{ product.images[2] if product.images and product.images|length >= 3 else '' }}" placeholder="URL..." style="font-size: 12px;">
+                    <input type="text" name="image3" value="{{ product.images[2] if product.images and product.images|length >= 3 else '' }}" placeholder="URL..." style="font-size: 12px; width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
                 </div>
 
             </div>
         </div>
 
         <div style="margin-top: 30px; text-align: right;">
-            <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">💾 Save Changes</button>
+            <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px; font-weight: bold; background-color: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Save Changes</button>
         </div>
     </form>
 </div>

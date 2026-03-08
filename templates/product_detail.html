@@ -18,6 +18,11 @@
             <div class="main-image-frame" style="border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); aspect-ratio: 1/1; position: relative;">
                 {% set main_img = product.images[0] if product.images and product.images|length > 0 else (product.image if product.image else 'https://via.placeholder.com/500') %}
                 <img id="mainImg" src="{{ main_img }}" alt="{{ product.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" 
+                        onclick="toggleWishlist(event, '{{ product._id }}')"
+                        style="bottom: 15px; right: 15px; width: 45px; height: 45px; font-size: 22px;"> 
+                        {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                </button>
             </div>
 
             {% if product.images and product.images|length > 1 %}
@@ -69,7 +74,7 @@
                             oninput="this.setCustomValidity('')"
                             style="width: 100%; padding: 15px; border: 1px solid #ddd; background: #fff; font-size: 16px; border-radius: 0;">
                         <option value="" disabled selected>Choose your size...</option>
-                        {% for size in [38, 39, 40, 41, 42, 43, 44] %}
+                        {% for size in [38, 39, 40, 41, 42] %}
                         <option value="{{ size }}">EU {{ size }}</option>
                         {% endfor %}
                     </select>
@@ -174,7 +179,8 @@
                                 <span style="position: absolute; top: 10px; left: 10px; background: #2d2d2d; color: #fff; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; z-index: 5;">
                                     👥 PEOPLE ALSO VIEWED
                                 </span>
-                            {% else %}
+
+                            {% elif rec.category_name == product.category_name %}
                                 <span style="position: absolute; top: 10px; left: 10px; background: #ddd; color: #333; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; z-index: 5;">
                                     🏷️ SAME TYPE
                                 </span>
