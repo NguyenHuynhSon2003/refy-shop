@@ -100,83 +100,73 @@ def get_recommendations(current_product=None, user_id=None, limit=8, products_co
 
     # === TRƯỜNG HỢP B: TRANG CHỦ (PERSONALIZED - HYBRID AI) ===
     elif user_id:
-        # Lấy lịch sử tương tác
         interactions = list(interactions_col.find({'user_id': user_id}))
         
-        # --- BƯỚC 1: LẤY ID CÁC SẢN PHẨM USER THÍCH ---
         liked_product_ids = []
         if interactions:
             for act in interactions:
                 pid = act['product_id']
-                # Trọng số: Mua (x5), Giỏ (x3), Xem (x1)
+                # Tăng trọng số cực mạnh cho hành động xem để AI "nhớ" ngay lập tức
                 weight = 1
-                if act['action'] == 'purchase': weight = 5
-                elif act['action'] == 'add_to_cart': weight = 3
-                
+                if act['action'] == 'view':
+                    weight = 2
+                elif act['action'] == 'add_to_wishlist': # Kích hoạt sức mạnh của Wishlist
+                    weight = 3
+                elif act['action'] == 'add_to_cart':
+                    weight = 4
+                elif act['action'] == 'purchase':
+                    weight = 5
                 liked_product_ids.extend([pid] * weight)
         
-        # Nếu user mới tinh (chưa có interactions) -> Dùng logic Cold Start
+        # Nếu user mới tinh -> Chạy logic Onboarding (Cold Start)
         if not liked_product_ids:
             return get_cold_start_recommendations(user_id, limit, products_col)
 
-        # --- BƯỚC 2: TÍNH ĐIỂM (TF-IDF + COSINE SIMILARITY) ---
+        # --- TÍNH ĐIỂM BẰNG TF-IDF ---
         all_products = list(products_col.find())
         if not all_products: return []
         
         df = pd.DataFrame(all_products)
         
-        # Tạo cột "Soup" (Gộp thông tin text)
-        df['soup'] = df['name'] + " " + \
+        # [CẬP NHẬT QUAN TRỌNG] "Nấu súp" dữ liệu đậm đặc hơn để AI thông minh hơn
+        df['soup'] = df['name'].fillna('') + " " + \
                      df['category_name'].fillna('') + " " + \
-                     df['attributes'].apply(lambda x: x.get('brand', '') if x else '')
+                     df['descriptions'].fillna('') + " " + \
+                     df['tags'].apply(lambda x: " ".join(x) if isinstance(x, list) else "") + " " + \
+                     df['attributes'].apply(lambda x: x.get('brand', '') if isinstance(x, dict) else '')
 
-        # Vector hóa
         tfidf = TfidfVectorizer(stop_words='english')
         try:
             tfidf_matrix = tfidf.fit_transform(df['soup'])
             cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
         except ValueError:
-            # Phòng trường hợp dữ liệu text rỗng
             return get_cold_start_recommendations(user_id, limit, products_col)
         
-        # Tính tổng điểm cho từng sản phẩm
-        product_scores = {} # {index: total_score}
-        
-        # Lấy index của các sản phẩm user đã thích trong DataFrame
+        product_scores = {} 
         liked_indices = df[df['_id'].isin(liked_product_ids)].index.tolist()
         
         for idx in liked_indices:
-            # Lấy dòng điểm tương đồng của sản phẩm này
             sim_scores = list(enumerate(cosine_sim[idx]))
             for i, score in sim_scores:
                 product_scores[i] = product_scores.get(i, 0) + score
 
-        # Sắp xếp theo điểm cao nhất
         sorted_scores = sorted(product_scores.items(), key=lambda x: x[1], reverse=True)
-        
-        # Lấy kết quả (Lọc bỏ sản phẩm đã tương tác nếu muốn, hoặc giữ lại)
-        seen_ids = set(liked_product_ids) # Chuyển thành set để check nhanh
+        seen_ids = set(liked_product_ids) 
         
         for idx, score in sorted_scores:
             p_row = df.iloc[idx]
             p_id = p_row['_id']
             
-            # Chỉ gợi ý sản phẩm chưa nằm trong list tương tác "gần đây" (để user khám phá mới)
-            # Hoặc comment dòng if này lại nếu muốn gợi ý lại cái cũ
-            if p_id not in seen_ids or len(recommendation_list) < limit: 
+            # Cho phép gợi ý lại những sản phẩm đã xem (vì khách hàng thường xem đi xem lại trước khi mua)
+            if p_id not in seen_ids or score > 0.5: 
                 p_data = p_row.to_dict()
                 p_data['_id'] = p_id 
                 
-                # [QUAN TRỌNG] Chuẩn hóa điểm số về thang 0-1 để frontend hiển thị %
-                # Vì cộng dồn nên score có thể > 1, ta chia logarit hoặc max-min, 
-                # ở đây dùng cách đơn giản: nếu > 1 thì set = 0.99
                 final_score = score if score < 1.0 else 0.99
-                
                 p_data['match_score'] = final_score
-                p_data['reason'] = f"Matches {int(final_score*100)}% of your style"
+                p_data['reason'] = f"Matches {int(final_score*100)}% of your interests"
                 
-                # Kiểm tra trùng lặp trong list kết quả
-                if not any(r['_id'] == p_id for r in recommendation_list):
+                if not any(r['_id'] == p_id for r in recommendation_list) and p_id not in seen_ids:
                     recommendation_list.append(p_data)
                 
             if len(recommendation_list) >= limit:
@@ -187,19 +177,24 @@ def get_recommendations(current_product=None, user_id=None, limit=8, products_co
     # === TRƯỜNG HỢP C: KHÁCH VÃNG LAI ===
     return list(products_col.find().sort('created_at', -1).limit(limit))
 
-# Hàm phụ trợ: Xử lý Cold Start
+# --- CẬP NHẬT LOGIC ONBOARDING CHUẨN XÁC ---
 def get_cold_start_recommendations(user_id, limit, products_col):
-    # Lấy thông tin user (cần import users_collection hoặc query lại)
-    # Ở đây query nhanh
     user = _global_users_col.find_one({'_id': ObjectId(user_id)})
     prefs = user.get('preferences', {}) if user else {}
     
     query = {}
-    styles = prefs.get('styles', [])
-    if styles:
-        query['category_name'] = {'$in': styles} # Giả định style map với category
     
-    # Random lấy mẫu
+    # Sửa lỗi map sai dữ liệu form: Dùng 'categories' và 'gender' thay vì 'styles'
+    categories = prefs.get('categories', [])
+    gender = prefs.get('gender')
+    
+    if categories:
+        query['category_name'] = {'$in': categories}
+        
+    if gender:
+        # Nếu chọn Men/Women thì lấy thêm cả hàng Unisex
+        query['attributes.gender'] = {'$in': [gender, 'unisex', 'Unisex', 'All']} 
+    
     pipeline = [{'$match': query}, {'$sample': {'size': limit}}]
     results = list(products_col.aggregate(pipeline))
     
@@ -207,8 +202,8 @@ def get_cold_start_recommendations(user_id, limit, products_col):
         results = list(products_col.find().sort('created_at', -1).limit(limit))
         
     for p in results: 
-        p['reason'] = "Recommended for you"
-        p['match_score'] = 0.0 # Không có điểm match cụ thể
+        p['reason'] = "Curated from your style profile"
+        p['match_score'] = 0.85 
         
     return results
 

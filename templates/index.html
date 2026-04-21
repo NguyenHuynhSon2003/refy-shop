@@ -94,7 +94,8 @@
 
         <section class="product-grid" style="margin-bottom: 80px;">
             {% for product in recommendations %}
-            <div class="product-card" style=" {% if product.get('match_score', 0) > 0.5 %}#4caf50{% else %}#eee{% endif %};">
+            {% set high_match = product.get('match_score', 0) > 0.5 %}
+            <div class="product-card {% if high_match %}border-green{% else %}border-gray{% endif %}">
                 <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
                     <div class="image-container">
                         {% set main_image = product.images[0] if product.images else (product.image if product.image else 'https://via.placeholder.com/300') %}
@@ -125,7 +126,9 @@
             </div>
             {% endfor %}
         </section>
-        {% endif %} {% if explore_more %}
+        {% endif %}
+
+        {% if explore_more %}
         <div class="section-header" style="text-align: center; margin-bottom: 30px;">
             <h2 style="font-size: 28px; font-weight: 800;">🔥 EXPLORE MORE</h2>
             <p style="color: #777;">More products from RefyShoe</p>

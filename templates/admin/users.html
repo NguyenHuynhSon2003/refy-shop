@@ -12,6 +12,7 @@
             <th style="padding: 12px;">Name / Email</th>
             <th style="padding: 12px;">Joined At</th>
             <th style="padding: 12px;">Preferences</th>
+            <th>Total Orders</th>
             <th style="padding: 12px;">Role</th>
             <th style="padding: 12px; text-align: right;">Action</th>
         </tr>
@@ -32,6 +33,8 @@
                    <span style="color: #cbd5e0; font-size: 12px;">No data</span>
                 {% endif %}
             </td>
+
+            <td style="padding: 12px;">{{ u.get('total_orders', 0) }}</td>
             
             <td style="padding: 12px;">
                 {% if u.email == 'admin@refy.com' or u.role == 'admin' %}

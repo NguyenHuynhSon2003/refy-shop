@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* CSS DÀNH RIÊNG CHO TRANG TÌM KIẾM NÂNG CAO */
+    .search-page-layout {
+        display: flex;
+        max-width: 1300px;
+        margin: 40px auto;
+        padding: 0 20px;
+        gap: 40px;
+        align-items: flex-start;
+    }
+
+    /* Cột Sidebar (Bên trái) */
+    .search-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+        background: #fff;
+        padding: 25px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        position: sticky;
+        top: 80px; /* Trượt theo màn hình */
+    }
+
+    .filter-group {
+        margin-bottom: 25px;
+    }
+
+    .filter-group label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 10px;
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #2d3748;
+    }
+
+    .filter-group input[type="text"],
+    .filter-group input[type="number"],
+    .filter-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 5px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .price-inputs {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .price-inputs span { color: #718096; }
+
+    .btn-apply {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: 0.2s;
+    }
+
+    .btn-apply:hover { background: #333; }
+
+    .btn-clear {
+        display: block;
+        text-align: center;
+        margin-top: 15px;
+        color: #e53e3e;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* Cột Nội dung (Bên phải) */
+    .search-content { flex-grow: 1; }
+    
+    .search-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #edf2f7;
+    }
+
+    .search-header h1 {
+        font-size: 28px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    /* Grid sản phẩm sử dụng lại CSS cũ của bạn */
+    .search-products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .search-page-layout { flex-direction: column; }
+        .search-sidebar { width: 100%; position: relative; top: 0; }
+    }
+</style>
+
+<div class="search-page-layout">
+    
+    <aside class="search-sidebar">
+        <form action="/search" method="GET">
+            
+            <div class="filter-group">
+                <label>Keyword</label>
+                <input type="text" name="q" value="{{ keyword }}" placeholder="e.g. Air Force...">
+            </div>
+
+            <div class="filter-group">
+                <label>Category</label>
+                <select name="category">
+                    <option value="">All Categories</option>
+                    {% for cat in all_categories %}
+                        <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Brand</label>
+                <select name="brand">
+                    <option value="">All Brands</option>
+                    {% for b in all_brands %}
+                        <option value="{{ b }}" {% if b == selected_brand %}selected{% endif %}>{{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Price Range (VND)</label>
+                <div class="price-inputs">
+                    <input type="number" name="min_price" value="{{ min_price if min_price != None else '' }}" placeholder="Min">
+                    <span>-</span>
+                    <input type="number" name="max_price" value="{{ max_price if max_price != None else '' }}" placeholder="Max">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Sort By</label>
+                <select name="sort">
+                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest Arrivals</option>
+                    <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-apply">APPLY FILTERS</button>
+            <a href="/search" class="btn-clear">Clear All</a>
+        </form>
+    </aside>
+
+    <div class="search-content">
+        <div class="search-header">
+            {% if keyword %}
+                <h1>RESULTS FOR "{{ keyword }}"</h1>
+            {% else %}
+                <h1>ADVANCED SEARCH</h1>
+            {% endif %}
+            <p style="color: #718096; font-size: 15px;">Found {{ products|length }} items matching your criteria.</p>
+        </div>
+
+        {% if products %}
+            <div class="search-products-grid">
+                {% for product in products %}
+                <div class="product-card">
+                    <a href="/product/{{ product._id }}" style="text-decoration: none; color: inherit; display: block;">
+                        <div class="image-container">
+                            {% set main_image = product.images[0] if product.images and product.images|length > 0 else (product.image if product.image else 'https://via.placeholder.com/300') %}
+                            <img src="{{ main_image }}" alt="{{ product.name }}">
+                            <button class="wishlist-btn {% if str(product._id) in user_wishlist %}active{% endif %}" onclick="toggleWishlist(event, '{{ product._id }}')">
+                                {% if str(product._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                            </button> 
+                        </div>
+                        <div class="product-info">
+                            <p class="product-name" style="font-weight: bold;">{{ product.name }}</p>
+                            <p style="color: #666; font-size: 12px; text-transform: uppercase;">{{ product.category_name }}</p>
+                            <p class="product-price">{{ "{:,.0f}".format(product.price) }} đ</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 50px 0;">
+                <h2 style="font-size: 24px; color: #2d3748; margin-bottom: 10px;">No matches found</h2>
+                <p style="color: #718096;">Try adjusting your filters or search for something else.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -514,6 +514,7 @@ def toggle_wishlist(product_id):
         return jsonify({'status': 'removed'})
     else:
         wishlists_collection.insert_one({'user_id': user_id, 'product_id': p_id, 'timestamp': datetime.now()})
+        track_and_learn(user_id, str(product_id), action="add_to_wishlist")
         return jsonify({'status': 'added'})
 
 @app.route('/collection/<collection_name>')
@@ -794,6 +795,14 @@ def admin_delete_product(product_id):
 def admin_users():
     if not is_admin(): return redirect('/')
     users = list(users_collection.find())
+    # 2. Vòng lặp đếm số đơn hàng cho từng người
+    for user in users:
+        # user_id lưu trong bảng orders đang ở dạng chuỗi (String)
+        # ép kiểu ObjectId của user sang chuỗi để so khớp
+        order_count = orders_collection.count_documents({'user_id': str(user['_id'])})
+        
+        # Gắn thêm một trường mới 'total_orders' vào dict của user để truyền ra frontend
+        user['total_orders'] = order_count
     return render_template('admin/users.html', users=users, page='users')
 
 # --- HELPERS ---
@@ -1014,25 +1023,69 @@ def place_order():
 def order_success():
     return render_template('order_success.html')
 
-# --- 9. ROUTE TÌM KIẾM (ĐÃ CẬP NHẬT) ---
+# --- 9. ROUTE TÌM KIẾM NÂNG CAO (ADVANCED SEARCH) ---
 @app.route('/search')
 def search():
-    query = request.args.get('q', '')
-    
-    if query:
-        # [CẬP NHẬT] Tìm kiếm đa trường theo cấu trúc mới
-        products = list(products_collection.find({
-            "$or": [
-                {"name": {"$regex": query, "$options": "i"}},
-                {"category_name": {"$regex": query, "$options": "i"}}, # DB mới có field này
-                {"attributes.brand": {"$regex": query, "$options": "i"}}, # Brand nằm trong attributes
-                {"tags": {"$regex": query, "$options": "i"}}
-            ]
-        }))
-    else:
-        products = []
+    # 1. BẮT CÁC THAM SỐ TỪ URL (GET Request)
+    keyword = request.args.get('q', '').strip()
+    category = request.args.get('category', '')
+    brand = request.args.get('brand', '')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    sort_by = request.args.get('sort', 'newest')
 
-    return render_template('index.html', products=products, search_query=query, page_title="Search Results")
+    # 2. XÂY DỰNG TRUY VẤN ĐỘNG (Dynamic Query)
+    query = {}
+
+    if keyword:
+        query['$or'] = [
+            {'name': {'$regex': keyword, '$options': 'i'}},
+            {'category_name': {'$regex': keyword, '$options': 'i'}},
+            {'attributes.brand': {'$regex': keyword, '$options': 'i'}},
+            {'tags': {'$regex': keyword, '$options': 'i'}}
+        ]
+
+    if category: query['category_name'] = category
+    if brand: query['attributes.brand'] = brand
+
+    if min_price is not None or max_price is not None:
+        query['price'] = {}
+        if min_price is not None: query['price']['$gte'] = min_price
+        if max_price is not None: query['price']['$lte'] = max_price
+
+    # 3. CHIẾN LƯỢC SẮP XẾP (Sorting Strategy)
+    sort_order = [('created_at', -1)]
+    if sort_by == 'price_asc': sort_order = [('price', 1)]
+    elif sort_by == 'price_desc': sort_order = [('price', -1)]
+
+    # 4. THỰC THI TRUY VẤN
+    products = list(products_collection.find(query).sort(sort_order))
+
+    # 5. LẤY DỮ LIỆU ĐỂ RENDER SIDEBAR BỘ LỌC
+    all_categories = products_collection.distinct('category_name')
+    all_brands = products_collection.distinct('attributes.brand')
+    all_brands = [b for b in all_brands if b] # Loại bỏ các brand bị null trong DB
+
+    # Lấy danh sách Wishlist để nút thả tim vẫn hoạt động
+    user_wishlist = []
+    if 'user_id' in session:
+        wishlist_data = wishlists_collection.find({'user_id': session['user_id']}, {'product_id': 1})
+        user_wishlist = [str(item['product_id']) for item in wishlist_data]
+
+    # Trả về một file HTML mới hoàn toàn
+    return render_template('search_results.html', 
+                           products=products,
+                           keyword=keyword,
+                           selected_category=category,
+                           selected_brand=brand,
+                           min_price=min_price,
+                           max_price=max_price,
+                           sort_by=sort_by,
+                           all_categories=all_categories,
+                           all_brands=all_brands,
+                           user_wishlist=user_wishlist)
+
+
 
 # --- ROUTE: HỦY ĐƠN HÀNG (USER TỰ HỦY) ---
 @app.route('/cancel-order/<order_id>', methods=['POST'])
