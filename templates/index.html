@@ -140,6 +140,10 @@
                 <a href="/product/{{ p._id }}" style="text-decoration: none; color: inherit; display: block;">
                     <div class="image-container">
                         <img src="{{ p.images[0] if p.images else p.image }}" alt="{{ p.name }}">
+                        <button class="wishlist-btn {% if str(p._id) in user_wishlist %}active{% endif %}" 
+                                onclick="toggleWishlist(event, '{{ p._id }}')">
+                            {% if str(p._id) in user_wishlist %}❤{% else %}♡{% endif %}
+                        </button>
                     </div>
                     <div class="product-info">
                         <p class="product-name" style="font-weight: bold;">{{ p.name }}</p>

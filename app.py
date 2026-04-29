@@ -460,6 +460,49 @@ def add_to_cart(product_id):
     flash("Added to cart successfully!", "success")
     return redirect(url_for('view_cart'))
 
+@app.route('/update-cart/<product_id>', methods=['POST'])
+def update_cart(product_id):
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+    p_id = ObjectId(product_id)
+    size_selected = request.form.get('size')
+    
+    try:
+        new_quantity = int(request.form.get('quantity', 1))
+    except:
+        new_quantity = 1
+
+    if new_quantity < 1:
+        new_quantity = 1
+
+    product = products_collection.find_one({'_id': p_id})
+    if not product:
+        flash("Product not found!", "danger")
+        return redirect(url_for('view_cart'))
+        
+    available_stock = 0
+    if 'sizes_stock' in product:
+        for s in product['sizes_stock']:
+            if str(s['size']) == str(size_selected): 
+                available_stock = int(s['quantity'])
+                break
+    else:
+        available_stock = int(product.get('stock', 0))
+
+    if new_quantity > available_stock:
+        flash(f"Insufficient stock! Size {size_selected} only has {available_stock} left.", "danger")
+        return redirect(url_for('view_cart'))
+
+    db['carts'].update_one(
+        {'user_id': user_id, 'items': {'$elemMatch': {'product_id': p_id, 'size': size_selected}}},
+        {'$set': {'items.$.quantity': new_quantity}}
+    )
+    
+    flash("Cart updated successfully!", "success")
+    return redirect(url_for('view_cart'))
+
 @app.route('/cart')
 def view_cart():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -629,20 +672,20 @@ def admin_dashboard():
 def delete_user(user_id):
     # 1. Kiểm tra quyền Admin
     if not is_admin():
-        flash("Bạn không có quyền thực hiện thao tác này.", "error")
+        flash("You do not have permission to perform this action.", "error")
         return redirect(url_for('home'))
 
     # 2. [QUAN TRỌNG] Không cho Admin tự xóa chính mình để tránh lỗi hệ thống
     if user_id == session.get('user_id'):
-        flash("Không thể tự xóa tài khoản đang đăng nhập!", "error")
+        flash("Cannot delete the currently logged-in account!", "error")
         return redirect(url_for('admin_dashboard'))
 
     try:
         # 3. Thực hiện xóa
         users_collection.delete_one({'_id': ObjectId(user_id)})
-        flash("Đã xóa tài khoản user thành công!", "success")
+        flash("User account deleted successfully!", "success")
     except Exception as e:
-        flash(f"Lỗi khi xóa: {str(e)}", "error")
+        flash(f"Error occurred while deleting: {str(e)}", "error")
 
     return redirect(url_for('admin_dashboard'))
 
@@ -831,12 +874,29 @@ def admin_categories():
     if request.method == 'POST':
         # Thêm danh mục mới
         name = request.form.get('name')
+        
         if name:
-            categories_collection.insert_one({
-                "name": name,
-                "created_at": datetime.now()
-            })
-            flash("New category added!", "success")
+            # Loại bỏ khoảng trắng thừa ở đầu và cuối chuỗi (rất quan trọng)
+            name = name.strip() 
+            
+            # Kiểm tra xem danh mục sau khi đã xóa khoảng trắng có bị rỗng không
+            if name: 
+                # Kiểm tra trùng lặp (không phân biệt hoa thường)
+                existing_category = categories_collection.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
+                
+                if existing_category:
+                    # NẾU TRÙNG LẶP -> Báo lỗi
+                    flash(f"Category '{name}' already exists!", "error")
+                else:
+                    # NẾU KHÔNG TRÙNG -> Cho phép thêm mới
+                    categories_collection.insert_one({
+                        "name": name,
+                        "created_at": datetime.now()
+                    })
+                    flash("New category added!", "success")
+            else:
+                flash("Category name cannot be empty spaces!", "error")
+                
         return redirect('/admin/categories')
 
     # Lấy danh sách danh mục
@@ -1258,16 +1318,16 @@ def onboarding():
     if request.method == 'POST':
         # Lấy dữ liệu từ form
         selected_gender = request.form.get('gender') # Men / Women
-        selected_styles = request.form.getlist('styles') # ['Streetwear', 'Vintage', ...]
         selected_categories = request.form.getlist('categories') # ['Hoodies', 'Shoes', ...]
-        
+        if not selected_gender or len(selected_categories) == 0:
+            flash("Please select your gender and at least one category of interest!", "error")
+            return redirect(url_for('onboarding'))
         # Lưu vào preferences của user
         users_collection.update_one(
             {'_id': ObjectId(session['user_id'])},
             {'$set': {
                 'preferences': {
                     'gender': selected_gender,
-                    'styles': selected_styles,
                     'categories': selected_categories
                 },
                 'is_onboarded': True

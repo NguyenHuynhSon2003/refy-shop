@@ -28,7 +28,7 @@
                     </div>
                     <div class="form-group">
                         <label>Category</label>
-                        <select name="category">
+                        <select name="category" required>
                             {% for cat in categories %}
                                 <option value="{{ cat.name }}">{{ cat.name }}</option>
                             {% endfor %}
@@ -48,7 +48,7 @@
                 </div>
                 <div class="form-group">
                     <label>Gender</label>
-                    <select name="gender">
+                    <select name="gender" required>
                         <option value="men">Men</option>
                         <option value="women">Women</option>
                         <option value="unisex">Unisex</option>
@@ -64,7 +64,7 @@
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
                     <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Size {{ s }}</label>
                     <input type="hidden" name="size_name[]" value="{{ s }}">
-                    <input type="number" name="size_qty[]" value="0" min="0" required style="width: 100%; text-align: center; border: 1px solid #cbd5e0; border-radius: 4px; padding: 5px;">
+                    <input type="number" name="size_qty[]" value="0" min="0" required style="width: 100%; box-sizing: border-box; text-align: center; border: 1px solid #cbd5e0; border-radius: 4px; padding: 5px;">
                 </div>
                 {% endfor %}
             </div>
@@ -142,6 +142,21 @@
             toggleBtn.innerHTML = '➕ Add New Product';
             toggleBtn.style.backgroundColor = '#6b46c1'; 
         }
+    });
+
+    // messages auto-dismiss
+    document.addEventListener("DOMContentLoaded", function() {
+        const requiredElements = document.querySelectorAll("input[required], select[required], textarea[required]");
+        
+        requiredElements.forEach(function(element) {
+            element.addEventListener("invalid", function() {
+                this.setCustomValidity("Please fill out this field.");
+            });
+            
+            element.addEventListener("input", function() {
+                this.setCustomValidity("");
+            });
+        });
     });
 </script>
 {% endblock %}

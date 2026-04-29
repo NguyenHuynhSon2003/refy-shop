@@ -41,7 +41,15 @@
                     </td>
                     <td>{{ item.size }}</td>
                     <td>{{ "{:,.0f}".format(item.price) }} VND</td>
-                    <td>{{ item.quantity }}</td>
+                    <td>
+                        <form action="{{ url_for('update_cart', product_id=item.product_id) }}" method="POST" style="display: flex; align-items: center; gap: 5px;">
+                            <input type="hidden" name="size" value="{{ item.size }}">
+                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 50px; text-align: center; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <button type="submit" style="background: black; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">
+                                Update
+                            </button>
+                        </form>
+                    </td>
                     <td><strong>{{ "{:,.0f}".format(item.price * item.quantity) }} VND</strong></td>
                     <td>
                         <form action="{{ url_for('remove_from_cart', product_id=item.product_id) }}" method="POST" style="display:inline;">

@@ -28,7 +28,7 @@
         .gender-input { display: none; }
         .gender-input:checked + .gender-label { border-color: black; background: black; color: white; }
 
-        /* 2. Style Grid (Image Cards) */
+        /* 2. Style Grid & Categories (Image Cards) */
         .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 50px; }
         .style-card { position: relative; cursor: pointer; border-radius: 12px; overflow: hidden; height: 150px; }
         .style-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; filter: brightness(0.7); }
@@ -37,7 +37,7 @@
         }
         .style-checkbox { display: none; }
         
-        /* Hiệu ứng khi chọn Style */
+        /* Hiệu ứng khi chọn Style/Category */
         .style-checkbox:checked + .style-card img { filter: brightness(0.4); transform: scale(1.1); }
         .style-checkbox:checked + .style-card::after {
             content: '✓'; position: absolute; top: 10px; right: 10px; 
@@ -68,15 +68,25 @@
 
     <div class="container">
         <div class="header">
-            <h1>Let's curate your feed.</h1>
-            <p>Help ReFYShoe AI understand your vibe to suggest the best looks.</p>
+            <h1>Welcome back, {{ user.name if user and user.name else 'Shopper' }}!</h1>
+            <p>Please complete your profile so ReFYShoe AI can understand your vibe.</p>
         </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 12px 20px; margin-bottom: 20px; border-radius: 4px; font-size: 14px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
 
         <form action="/onboarding" method="POST" id="onboardingForm" onsubmit="showAiLoading(event)">
             
             <div class="section-title">Who are you shopping for?</div>
             <div class="gender-options">
-                <input type="radio" name="gender" value="men" id="men" class="gender-input" required>
+                <input type="radio" name="gender" value="men" id="men" class="gender-input">
                 <label for="men" class="gender-label">Men</label>
 
                 <input type="radio" name="gender" value="women" id="women" class="gender-input">
@@ -86,48 +96,40 @@
                 <label for="unisex" class="gender-label">Everyone</label>
             </div>
 
-            <div class="section-title">Pick styles you like</div>
-            <div class="style-grid">
-                <label>
-                    <input type="checkbox" name="styles" value="Streetwear" class="style-checkbox">
+            <div class="section-title">Pick categories you like</div>
+            <div class="style-grid" style="grid-template-columns: repeat(5, 1fr);"> <label>
+                    <input type="checkbox" name="categories" value="Sneakers" class="style-checkbox">
                     <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1523398002811-999ca8dec234?q=80&w=1000" alt="Streetwear">
-                        <span>Streetwear</span>
+                        <img src="https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=1000" alt="Sneakers">
+                        <span>Sneakers</span>
                     </div>
                 </label>
                 <label>
-                    <input type="checkbox" name="styles" value="Minimalist" class="style-checkbox">
+                    <input type="checkbox" name="categories" value="Boots" class="style-checkbox">
                     <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000" alt="Minimalist">
-                        <span>Minimalist</span>
+                        <img src="https://images.unsplash.com/photo-1608256246200-53e635b5b65f?q=80&w=1000" alt="Boots">
+                        <span>Boots</span>
                     </div>
                 </label>
                 <label>
-                    <input type="checkbox" name="styles" value="Vintage" class="style-checkbox">
+                    <input type="checkbox" name="categories" value="Sandals" class="style-checkbox">
                     <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=1000" alt="Vintage">
-                        <span>Vintage</span>
+                        <img src="https://images.unsplash.com/photo-1603487742131-4160ec999306?q=80&w=1000" alt="Sandals">
+                        <span>Sandals</span>
                     </div>
                 </label>
-                 <label>
-                    <input type="checkbox" name="styles" value="Luxury" class="style-checkbox">
+                <label>
+                    <input type="checkbox" name="categories" value="Formal" class="style-checkbox">
                     <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1000" alt="Luxury">
-                        <span>Luxury</span>
+                        <img src="https://hitz.co.in/cdn/shop/files/4317-BLACK.jpg?v=1755618592" alt="Formal">
+                        <span>Formal</span>
                     </div>
                 </label>
-                 <label>
-                    <input type="checkbox" name="styles" value="Sporty" class="style-checkbox">
+                <label>
+                    <input type="checkbox" name="categories" value="Cleats" class="style-checkbox">
                     <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1000" alt="Sporty">
-                        <span>Sporty</span>
-                    </div>
-                </label>
-                 <label>
-                    <input type="checkbox" name="styles" value="Casual" class="style-checkbox">
-                    <div class="style-card">
-                        <img src="https://images.unsplash.com/photo-1516762689617-e1cffcef479d?q=80&w=1000" alt="Casual">
-                        <span>Casual</span>
+                        <img src="https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=1000" alt="Cleats">
+                        <span>Cleats</span>
                     </div>
                 </label>
             </div>
@@ -142,21 +144,34 @@
         <div class="ai-sub" id="ai-subtext">Matching your style with 5,000+ products</div>
     </div>
 
-    <script>
+<script>
         function showAiLoading(event) {
-            // Ngăn form gửi đi ngay lập tức
+            // 1. Chặn ngay lập tức việc gửi form mặc định để JS tự kiểm tra
             event.preventDefault();
             
-            // Hiện màn hình loading giả
+            // 2. Lấy danh sách các mục người dùng đã chọn
+            const selectedGender = document.querySelector('input[name="gender"]:checked');
+            const checkedCategories = document.querySelectorAll('input[name="categories"]:checked');
+            
+            // 3. Kiểm tra từng trường hợp và báo lỗi trực tiếp (Front-end Validation)
+            if (!selectedGender) {
+                alert("Please select who you are shopping for!");
+                return;
+            }
+            if (checkedCategories.length === 0) {
+                alert("Please select at least one favorite category!");
+                return;
+            }
+
+            // 4. Nếu đã tick đủ hết, bắt đầu bật hiệu ứng Loading AI
             const overlay = document.getElementById('ai-overlay');
             const subtext = document.getElementById('ai-subtext');
             overlay.style.display = 'flex';
             
-            // Thay đổi chữ để user thấy AI đang "làm việc" thật
             setTimeout(() => { subtext.innerText = "Building your personalized graph..."; }, 1000);
             setTimeout(() => { subtext.innerText = "Curating top recommendations..."; }, 2500);
             
-            // Sau 3.5 giây mới gửi form thật
+            // 5. Gửi dữ liệu thật về Backend sau 3.5 giây chờ hiệu ứng
             setTimeout(() => {
                 event.target.submit();
             }, 3500);
